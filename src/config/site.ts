@@ -1,6 +1,6 @@
 export const siteConfig = {
-  name: "Bryght Ideas",
-  legalName: "Bryght Ideas LLC",
+  name: "BRYght Ideas",
+  legalName: "BRYght Ideas LLC",
   tagline: "Where bold ideas meet brilliant execution",
   description:
     "Chicago-based app development studio and technology consultancy building beautiful, AI-powered applications.",
@@ -119,7 +119,7 @@ export const siteConfig = {
     name: "Bryan Hearn",
     title: "Founder & Principal",
     bio: "With over 20 years navigating the intersection of technology and business, Bryan brings a rare breadth of experience to every project. From managing enterprise IT infrastructure in hospitality to building recruiting technology platforms, his journey has always centered on one thing: using technology to solve real problems for real people.",
-    bio2: "Bryght Ideas is the culmination of that journey — a studio where deep technical knowledge meets creative vision, augmented by the latest in AI-powered development.",
+    bio2: "BRYght Ideas is the culmination of that journey — a studio where deep technical knowledge meets creative vision, augmented by the latest in AI-powered development.",
     location: "Chicago, Illinois",
   },
 

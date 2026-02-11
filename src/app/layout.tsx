@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
+import { Playfair_Display, Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
 });
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -22,7 +23,7 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bryght Ideas LLC — App Development & Technology Consulting",
+  title: "BRYght Ideas LLC — App Development & Technology Consulting",
   description:
     "Chicago-based app development studio and technology consultancy. We build beautiful, AI-powered mobile and web applications.",
   keywords: [
@@ -34,7 +35,7 @@ export const metadata: Metadata = {
     "AI",
   ],
   openGraph: {
-    title: "Bryght Ideas LLC",
+    title: "BRYght Ideas LLC",
     description:
       "App Development & Technology Consulting — Chicago, Illinois",
     type: "website",
@@ -49,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <body
-        className={`${spaceGrotesk.variable} ${plusJakarta.variable} ${dmMono.variable} font-sans antialiased`}
+        className={`${playfair.variable} ${plusJakarta.variable} ${dmMono.variable} font-sans antialiased`}
       >
         <div className="grain" />
         <Nav />

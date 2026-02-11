@@ -39,3 +39,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+design-reference/bryght-ideas-web.vercel.app*.zip

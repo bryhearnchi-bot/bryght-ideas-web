@@ -1,23 +1,34 @@
-"use client";
+/**
+ * Navigation bar component
+ * Fixed top navbar with glass morphism, logo, nav links, and CTA button.
+ * Supports scroll-triggered background opacity change.
+ */
+import React, { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X } from 'lucide-react';
+import { BryghtLogo } from './BryghtLogo';
 
-import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
-import { Logo } from "./logo";
-import { siteConfig } from "@/config/site";
+const navLinks = [
+  { label: 'Services', href: '#services' },
+  { label: 'Portfolio', href: '#portfolio' },
+  { label: 'Approach', href: '#approach' },
+  { label: 'Founder', href: '#founder' },
+];
 
-export function Nav() {
+export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const toggleMobile = useCallback(() => setMobileOpen((prev) => !prev), []);
+
+  const toggleMobile = useCallback(() => setMobileOpen(prev => !prev), []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 backdrop-blur-2xl bg-background/70">
       <div className="max-w-[1152px] mx-auto px-6 h-16 flex items-center justify-between">
-        <Logo />
+        {/* Logo */}
+        <BryghtLogo />
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          {siteConfig.nav.links.map((link) => (
+          {navLinks.map(link => (
             <a
               key={link.href}
               href={link.href}
@@ -27,10 +38,10 @@ export function Nav() {
             </a>
           ))}
           <a
-            href={siteConfig.nav.cta.href}
-            className="bg-primary hover:bg-primary/90 text-white text-sm font-medium px-5 h-9 inline-flex items-center rounded-full transition-colors duration-200"
+            href="#contact"
+            className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white text-sm font-medium px-4 h-9 inline-flex items-center rounded-md transition-colors duration-200"
           >
-            {siteConfig.nav.cta.label}
+            Get in Touch
           </a>
         </div>
 
@@ -49,13 +60,13 @@ export function Nav() {
         {mobileOpen && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
+            animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="md:hidden overflow-hidden border-t border-border/40 bg-background/95 backdrop-blur-xl"
           >
             <div className="px-6 py-6 flex flex-col gap-4">
-              {siteConfig.nav.links.map((link) => (
+              {navLinks.map(link => (
                 <a
                   key={link.href}
                   href={link.href}
@@ -66,11 +77,11 @@ export function Nav() {
                 </a>
               ))}
               <a
-                href={siteConfig.nav.cta.href}
+                href="#contact"
                 onClick={() => setMobileOpen(false)}
-                className="bg-primary text-white text-sm font-semibold px-4 py-3 rounded-full text-center mt-2"
+                className="bg-[#2563eb] text-white text-sm font-semibold px-4 py-3 rounded-md text-center mt-2"
               >
-                {siteConfig.nav.cta.label}
+                Get in Touch
               </a>
             </div>
           </motion.div>

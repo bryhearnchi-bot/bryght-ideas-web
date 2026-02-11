@@ -2,8 +2,6 @@
 
 import { motion } from "framer-motion";
 import { Plane, Theater, Ship, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { SectionWrapper } from "@/components/section-wrapper";
 import { siteConfig } from "@/config/site";
 
 const iconMap: Record<string, React.ElementType> = {
@@ -15,75 +13,77 @@ const iconMap: Record<string, React.ElementType> = {
 
 export function Portfolio() {
   return (
-    <SectionWrapper id="portfolio" className="relative">
-      {/* Subtle background accent */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute top-1/2 left-0 w-[500px] h-[500px] rounded-full bg-purple-vivid/[0.03] blur-[120px]" />
-      </div>
+    <section id="portfolio" className="py-24 px-6">
+      <div className="max-w-[1152px] mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+          <div>
+            <h2 className="text-4xl md:text-5xl font-serif font-bold mb-4">
+              Selected Work
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-xl">
+              We don&apos;t just build for clients — we build our own apps too.
+              Here&apos;s what&apos;s in the lab.
+            </p>
+          </div>
+        </div>
 
-      <div className="text-center mb-16">
-        <span className="text-xs font-medium tracking-widest uppercase text-gold">
-          Our Apps
-        </span>
-        <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold mt-3 tracking-tight">
-          Building a Portfolio of Products
-        </h2>
-        <p className="text-muted-foreground mt-4 max-w-xl mx-auto text-lg">
-          We don&apos;t just build for clients — we build our own apps too.
-          Here&apos;s a glimpse of what&apos;s in the lab.
-        </p>
-      </div>
-
-      <div className="grid sm:grid-cols-2 gap-6">
-        {siteConfig.apps.map((app, i) => {
-          const Icon = iconMap[app.icon];
-          return (
-            <motion.div
-              key={app.name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group relative card-glow rounded-lg bg-card/50 p-8 backdrop-blur-sm overflow-hidden"
-            >
-              {/* Colored accent bar */}
-              <div
-                className="absolute top-0 left-0 w-full h-[2px]"
-                style={{
-                  background: `linear-gradient(90deg, transparent, ${app.color}, transparent)`,
-                }}
-              />
-
-              <div className="flex items-start justify-between mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {siteConfig.apps.map((app, idx) => {
+            const Icon = iconMap[app.icon];
+            return (
+              <motion.div
+                key={app.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="group cursor-pointer"
+              >
+                {/* Gradient placeholder card with icon */}
                 <div
-                  className="w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: `${app.color}15` }}
+                  className="relative aspect-[4/5] rounded-3xl overflow-hidden mb-6 flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${app.color}22, ${app.color}44, ${app.color}11)`,
+                  }}
                 >
+                  <div
+                    className="absolute inset-0 opacity-20"
+                    style={{
+                      background: `radial-gradient(circle at 30% 40%, ${app.color}40, transparent 70%)`,
+                    }}
+                  />
                   {Icon && (
-                    <Icon className="h-5 w-5" style={{ color: app.color }} />
+                    <Icon
+                      className="h-16 w-16 transition-transform duration-700 group-hover:scale-110"
+                      style={{ color: app.color }}
+                    />
                   )}
+                  <div className="absolute top-4 right-4">
+                    <span
+                      className="text-[10px] tracking-wider uppercase font-medium px-3 py-1 rounded-full"
+                      style={{
+                        backgroundColor: `${app.color}20`,
+                        color: app.color,
+                      }}
+                    >
+                      {app.status}
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                    <span className="text-white font-bold text-lg">
+                      {app.description}
+                    </span>
+                  </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] tracking-wider uppercase border-white/10 text-muted-foreground"
-                >
-                  {app.status}
-                </Badge>
-              </div>
-
-              <h3 className="font-display text-xl font-semibold mb-1">
-                {app.name}
-              </h3>
-              <p className="text-xs text-muted-foreground/60 uppercase tracking-wider mb-3">
-                {app.category}
-              </p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {app.description}
-              </p>
-            </motion.div>
-          );
-        })}
+                <h3 className="text-2xl font-bold mb-1">{app.name}</h3>
+                <p className="text-muted-foreground text-sm uppercase tracking-widest">
+                  {app.category}
+                </p>
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
-    </SectionWrapper>
+    </section>
   );
 }
