@@ -10,6 +10,18 @@ export function Nav() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const toggleMobile = useCallback(() => setMobileOpen((prev) => !prev), []);
 
+  const handleMobileLink = useCallback((href: string) => {
+    setMobileOpen(false);
+    // Small delay to let menu close animation start, then scroll
+    setTimeout(() => {
+      const id = href.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 100);
+  }, []);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 backdrop-blur-2xl bg-background/70">
       <div className="max-w-[1152px] mx-auto px-6 h-16 flex items-center justify-between">
@@ -59,7 +71,7 @@ export function Nav() {
                 <a
                   key={link.href}
                   href={link.href}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={(e) => { e.preventDefault(); handleMobileLink(link.href); }}
                   className="text-muted-foreground text-base hover:text-foreground transition-colors"
                 >
                   {link.label}
@@ -67,7 +79,7 @@ export function Nav() {
               ))}
               <a
                 href={siteConfig.nav.cta.href}
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => { e.preventDefault(); handleMobileLink(siteConfig.nav.cta.href); }}
                 className="bg-primary text-white text-sm font-semibold px-4 py-3 rounded-full text-center mt-2"
               >
                 {siteConfig.nav.cta.label}
