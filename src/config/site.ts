@@ -55,7 +55,7 @@ export const siteConfig = {
 
   apps: [
     {
-      name: "KGay Travel",
+      name: "KGAY Travel",
       category: "Travel & Hospitality",
       description:
         "Reimagining how travelers discover and book inclusive experiences worldwide.",
