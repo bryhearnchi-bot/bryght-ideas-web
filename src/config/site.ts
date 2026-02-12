@@ -61,7 +61,8 @@ export const siteConfig = {
         "Reimagining how travelers discover and book inclusive experiences worldwide.",
       color: "#2563eb",
       icon: "Plane",
-      status: "In Development",
+      status: "Live",
+      screenshot: "/kgay-app-screenshot.png",
     },
     {
       name: "BetweenActs",
@@ -71,6 +72,7 @@ export const siteConfig = {
       color: "#7c3aed",
       icon: "Drama",
       status: "In Development",
+      screenshot: "/betweenacts-app-screenshot.png",
     },
     {
       name: "Ahoy",

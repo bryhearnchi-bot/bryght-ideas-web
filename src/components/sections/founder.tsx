@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Quote, MapPin } from "lucide-react";
 import { siteConfig } from "@/config/site";
@@ -18,21 +19,15 @@ export function Founder() {
         >
           <div className="relative">
             <div className="absolute inset-0 bg-primary/10 rounded-3xl rotate-3" />
-            <div className="relative rounded-3xl w-full aspect-[4/5] overflow-hidden bg-gradient-to-br from-blue-vivid/30 via-purple-vivid/20 to-gold/10 flex items-center justify-center">
-              {/* Abstract pattern placeholder */}
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-1/4 left-1/4 w-32 h-32 rounded-full bg-primary/40 blur-2xl" />
-                <div className="absolute bottom-1/3 right-1/4 w-24 h-24 rounded-full bg-gold/30 blur-2xl" />
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full bg-purple-vivid/30 blur-3xl" />
-              </div>
-              <div className="relative z-10 text-center px-8">
-                <div className="text-6xl font-serif font-bold text-foreground/20 mb-2">
-                  BH
-                </div>
-                <p className="text-sm text-muted-foreground/40">
-                  Photo coming soon
-                </p>
-              </div>
+            <div className="relative rounded-3xl w-full aspect-[4/5] overflow-hidden">
+              <Image
+                src="/bryan-hearn.jpg"
+                alt="Bryan Hearn — Founder of BRYght Ideas"
+                fill
+                className="object-cover object-top"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority
+              />
             </div>
           </div>
         </motion.div>

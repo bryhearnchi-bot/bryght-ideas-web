@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Plane, Theater, Ship, Sparkles } from "lucide-react";
 import { siteConfig } from "@/config/site";
@@ -39,26 +40,39 @@ export function Portfolio() {
                 transition={{ delay: idx * 0.1 }}
                 className="group cursor-pointer"
               >
-                {/* Gradient placeholder card with icon */}
                 <div
                   className="relative aspect-[4/5] rounded-3xl overflow-hidden mb-6 flex items-center justify-center"
                   style={{
-                    background: `linear-gradient(135deg, ${app.color}22, ${app.color}44, ${app.color}11)`,
+                    background: !(app as any).screenshot
+                      ? `linear-gradient(135deg, ${app.color}22, ${app.color}44, ${app.color}11)`
+                      : undefined,
                   }}
                 >
-                  <div
-                    className="absolute inset-0 opacity-20"
-                    style={{
-                      background: `radial-gradient(circle at 30% 40%, ${app.color}40, transparent 70%)`,
-                    }}
-                  />
-                  {Icon && (
-                    <Icon
-                      className="h-16 w-16 transition-transform duration-700 group-hover:scale-110"
-                      style={{ color: app.color }}
+                  {(app as any).screenshot ? (
+                    <Image
+                      src={(app as any).screenshot}
+                      alt={`${app.name} app screenshot`}
+                      fill
+                      className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />
+                  ) : (
+                    <>
+                      <div
+                        className="absolute inset-0 opacity-20"
+                        style={{
+                          background: `radial-gradient(circle at 30% 40%, ${app.color}40, transparent 70%)`,
+                        }}
+                      />
+                      {Icon && (
+                        <Icon
+                          className="h-16 w-16 transition-transform duration-700 group-hover:scale-110"
+                          style={{ color: app.color }}
+                        />
+                      )}
+                    </>
                   )}
-                  <div className="absolute top-4 right-4">
+                  <div className="absolute top-4 right-4 z-10">
                     <span
                       className="text-[10px] tracking-wider uppercase font-medium px-3 py-1 rounded-full"
                       style={{
@@ -69,7 +83,7 @@ export function Portfolio() {
                       {app.status}
                     </span>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8 z-10">
                     <span className="text-white font-bold text-lg">
                       {app.description}
                     </span>
