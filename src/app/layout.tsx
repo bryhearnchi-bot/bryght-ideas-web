@@ -1,31 +1,24 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Plus_Jakarta_Sans, DM_Mono } from "next/font/google";
+import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import { Nav } from "@/components/nav";
 import "./globals.css";
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
+  axes: ["opsz", "wdth"],
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta",
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800"],
-});
-
-const dmMono = DM_Mono({
-  variable: "--font-dm-mono",
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
+  weight: ["400", "500", "700"],
 });
 
 export const metadata: Metadata = {
   title: "BRYght Ideas LLC — App Development & Technology Consulting",
   description:
-    "Chicago-based app development studio and technology consultancy. We build beautiful, AI-powered mobile and web applications.",
+    "Chicago app studio and technology consultancy. Mobile apps, web apps, AI features and consulting, founder-led on every project.",
   keywords: [
     "app development",
     "technology consulting",
@@ -48,13 +41,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark scroll-smooth">
+    <html lang="en" className="scroll-smooth">
       <body
-        className={`${playfair.variable} ${plusJakarta.variable} ${dmMono.variable} font-sans antialiased`}
+        className={`${bricolage.variable} ${dmSans.variable} font-sans antialiased`}
       >
-        <div className="grain" />
-        <Nav />
-        <div className="relative z-10">{children}</div>
+        {/* The nav rides on the blue hero block, so the band behind it is blue too. */}
+        <div className="bg-blue-block">
+          <Nav />
+        </div>
+        {children}
       </body>
     </html>
   );

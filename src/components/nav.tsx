@@ -23,24 +23,24 @@ export function Nav() {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 backdrop-blur-2xl bg-background/70">
-      <div className="max-w-[1152px] mx-auto px-6 h-16 flex items-center justify-between">
+    <nav className="relative z-50 text-black">
+      <div className="flex items-center justify-between px-6 py-5 md:px-14 md:py-7">
         <Logo />
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden items-center gap-8 md:flex">
           {siteConfig.nav.links.map((link) => (
             <a
               key={link.href}
               href={link.href}
-              className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-300"
+              className="label text-current transition-colors duration-200 hover:text-blue-ink"
             >
               {link.label}
             </a>
           ))}
           <a
             href={siteConfig.nav.cta.href}
-            className="bg-primary hover:bg-primary/90 text-white text-sm font-medium px-5 h-9 inline-flex items-center rounded-full transition-colors duration-200"
+            className="label inline-flex items-center rounded-[6px] bg-black px-5 py-3.5 text-offwhite transition-opacity duration-200 hover:opacity-85"
           >
             {siteConfig.nav.cta.label}
           </a>
@@ -49,10 +49,11 @@ export function Nav() {
         {/* Mobile toggle */}
         <button
           onClick={toggleMobile}
-          className="md:hidden text-muted-foreground p-2 hover:text-foreground transition-colors"
+          className="p-2 text-current transition-colors hover:text-blue-ink md:hidden"
           aria-label="Toggle menu"
+          aria-expanded={mobileOpen}
         >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
@@ -64,23 +65,29 @@ export function Nav() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden overflow-hidden border-t border-border/40 bg-background/95 backdrop-blur-xl"
+            className="overflow-hidden bg-offwhite text-black md:hidden"
           >
-            <div className="px-6 py-6 flex flex-col gap-4">
+            <div className="flex flex-col gap-5 px-6 py-6">
               {siteConfig.nav.links.map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  onClick={(e) => { e.preventDefault(); handleMobileLink(link.href); }}
-                  className="text-muted-foreground text-base hover:text-foreground transition-colors"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleMobileLink(link.href);
+                  }}
+                  className="label text-current transition-colors hover:text-blue-ink"
                 >
                   {link.label}
                 </a>
               ))}
               <a
                 href={siteConfig.nav.cta.href}
-                onClick={(e) => { e.preventDefault(); handleMobileLink(siteConfig.nav.cta.href); }}
-                className="bg-primary text-white text-sm font-semibold px-4 py-3 rounded-full text-center mt-2"
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleMobileLink(siteConfig.nav.cta.href);
+                }}
+                className="label mt-1 rounded-[6px] bg-black px-5 py-3.5 text-center text-offwhite"
               >
                 {siteConfig.nav.cta.label}
               </a>

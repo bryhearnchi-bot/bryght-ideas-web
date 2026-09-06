@@ -1,5 +1,3 @@
-"use client";
-
 import { Logo } from "@/components/logo";
 import { siteConfig } from "@/config/site";
 
@@ -7,35 +5,25 @@ export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border/40 bg-background/80 backdrop-blur">
-      <div className="max-w-[1152px] mx-auto px-6 py-16">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
-          <div>
-            <Logo />
-            <p className="text-muted-foreground text-sm max-w-xs mt-3 mb-0">
-              {siteConfig.footer.tagline}
-            </p>
-          </div>
-          <div className="flex items-center gap-8">
-            {siteConfig.footer.links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-muted-foreground text-sm hover:text-foreground transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
+    <footer className="border-t border-offwhite/20 bg-black px-6 py-6 text-offwhite lg:px-14">
+      <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+        <Logo />
+
+        <div className="flex flex-wrap items-center gap-6 lg:gap-8">
+          {siteConfig.footer.links.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              className="label text-[#C5CBD6] transition-colors duration-200 hover:text-offwhite"
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-12 pt-8 border-t border-foreground/[0.04]">
-          <p className="text-muted-foreground/60 text-xs m-0">
-            &copy; {year} {siteConfig.legalName}. All rights reserved.
-          </p>
-          <p className="text-muted-foreground/40 text-xs m-0">
-            {siteConfig.location}
-          </p>
-        </div>
+
+        <p className="m-0 text-[12px] text-[#C5CBD6]">
+          © {year} {siteConfig.legalName}
+        </p>
       </div>
     </footer>
   );

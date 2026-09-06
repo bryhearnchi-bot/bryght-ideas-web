@@ -1,76 +1,52 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Mail, ArrowUpRight, MapPin } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
 
-export function Contact() {
-  return (
-    <section id="contact" className="py-24 px-6 border-t border-border/40">
-      <div className="max-w-[1152px] mx-auto text-center">
-        <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-5xl md:text-7xl font-serif font-bold mb-8"
-        >
-          Ready to shine?
-        </motion.h2>
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.1 }}
-          className="text-muted-foreground text-xl mb-12 max-w-2xl mx-auto"
-        >
-          Whether you need a custom app, technology guidance, or want to explore
-          what&apos;s possible with AI — we&apos;d love to hear from you.
-        </motion.p>
+const headingWords = siteConfig.contact.heading.split(" ");
+const headingLead = headingWords.slice(0, -1).join(" ");
+const headingLast = headingWords[headingWords.length - 1];
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
-          className="flex flex-col md:flex-row items-center justify-center gap-8 mb-16"
+export function Contact() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <section
+      id="contact"
+      className="bg-black px-6 pt-20 pb-14 text-offwhite lg:px-14 lg:pt-28 lg:pb-[72px]"
+    >
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="flex flex-col gap-10 lg:gap-12"
+      >
+        <h2
+          className="display m-0 uppercase"
+          style={{ fontSize: "clamp(72px, 15.3vw, 220px)", lineHeight: 0.85 }}
         >
+          {headingLead ? <span className="block">{headingLead}</span> : null}
+          <span className="block text-blue-block">{headingLast}</span>
+        </h2>
+
+        <p className="m-0 max-w-[460px] text-[18px] leading-[1.5] text-[#C5CBD6]">
+          {siteConfig.contact.note}
+        </p>
+
+        <div className="flex flex-wrap items-end justify-between gap-6 border-t border-offwhite/20 pt-8 lg:gap-10">
           <a
             href={`mailto:${siteConfig.email}`}
-            className="flex items-center gap-4 p-6 rounded-2xl bg-muted/50 border border-border hover:border-primary transition-all w-full md:w-auto"
+            className="display inline-block border-b-4 border-blue-block text-offwhite"
+            style={{ fontSize: "clamp(24px, 3vw, 44px)" }}
           >
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <Mail size={24} />
-            </div>
-            <div className="text-left">
-              <p className="text-xs text-muted-foreground m-0">Email us</p>
-              <p className="font-bold m-0">{siteConfig.email}</p>
-            </div>
+            {siteConfig.email}
           </a>
-        </motion.div>
-
-        <motion.a
-          href={`mailto:${siteConfig.email}`}
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="inline-flex items-center gap-2 group text-2xl font-bold hover:text-primary transition-colors"
-        >
-          Start your inquiry{" "}
-          <ArrowUpRight className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-        </motion.a>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.4 }}
-          className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground"
-        >
-          <MapPin className="h-4 w-4" />
-          {siteConfig.location}
-        </motion.div>
-      </div>
+          <span className="label text-[#C5CBD6]">
+            {siteConfig.legalName} · {siteConfig.location}
+          </span>
+        </div>
+      </motion.div>
     </section>
   );
 }

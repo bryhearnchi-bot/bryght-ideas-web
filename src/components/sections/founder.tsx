@@ -1,65 +1,62 @@
 "use client";
 
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Quote, MapPin } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
 
 export function Founder() {
+  const reduceMotion = useReducedMotion();
+
   return (
-    <section id="founder" className="py-24 px-6">
-      <div className="max-w-[1152px] mx-auto flex flex-col md:flex-row items-center gap-16">
-        {/* Photo placeholder — tasteful gradient */}
-        <motion.div
-          initial={{ opacity: 0, x: -30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="w-full md:w-1/2"
+    <section
+      id="founder"
+      className="grid gap-12 px-6 pb-20 lg:grid-cols-[480px_minmax(0,1fr)] lg:items-center lg:gap-16 lg:px-14 lg:pb-28"
+    >
+      {/* Photo, tilted a couple of degrees */}
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="relative aspect-[4/5] w-full -rotate-2 overflow-hidden rounded-[16px] border-[3px] border-black"
+      >
+        <Image
+          src="/bryan-hearn.jpg"
+          alt={`${siteConfig.founder.name} — ${siteConfig.founder.title}, ${siteConfig.name}`}
+          fill
+          sizes="(max-width: 1024px) 100vw, 480px"
+          className="object-cover"
+        />
+      </motion.div>
+
+      {/* Bio */}
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+        className="flex flex-col gap-6"
+      >
+        <span className="label text-blue-ink">{siteConfig.founder.title}</span>
+
+        <h2
+          className="display m-0"
+          style={{ fontSize: "clamp(44px, 5vw, 72px)" }}
         >
-          <div className="relative">
-            <div className="absolute inset-0 bg-primary/10 rounded-3xl rotate-3" />
-            <div className="relative rounded-3xl w-full aspect-[4/5] overflow-hidden">
-              <Image
-                src="/bryan-hearn.jpg"
-                alt="Bryan Hearn — Founder of BRYght Ideas"
-                fill
-                className="object-cover object-top"
-                sizes="(max-width: 768px) 100vw, 50vw"
-                priority
-              />
-            </div>
-          </div>
-        </motion.div>
+          {siteConfig.founder.heading}
+        </h2>
 
-        {/* Quote + bio */}
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="w-full md:w-1/2"
-        >
-          <Quote size={48} className="text-primary/20 mb-8" />
-          <h2 className="text-3xl md:text-4xl font-serif italic font-medium leading-tight mb-8">
-            &ldquo;Technology should solve real problems for real people. That&apos;s what drives everything we build.&rdquo;
-          </h2>
-          <div className="mb-8">
-            <p className="font-bold text-xl">{siteConfig.founder.name}</p>
-            <p className="text-muted-foreground">{siteConfig.founder.title}</p>
-          </div>
+        <p className="m-0 max-w-[640px] text-[19px] leading-[1.5] text-[#333333]">
+          {siteConfig.founder.bio}
+        </p>
+        <p className="m-0 max-w-[640px] text-[19px] leading-[1.5] text-[#333333]">
+          {siteConfig.founder.bio2}
+        </p>
 
-          <div className="space-y-4 text-muted-foreground leading-relaxed">
-            <p>{siteConfig.founder.bio}</p>
-            <p>{siteConfig.founder.bio2}</p>
-          </div>
-
-          <div className="flex items-center gap-2 text-sm text-muted-foreground pt-6 mt-6 border-t border-white/[0.06]">
-            <MapPin className="h-4 w-4 text-primary" />
-            {siteConfig.founder.location}
-          </div>
-        </motion.div>
-      </div>
+        <span className="label text-[#444444]">
+          {siteConfig.founder.location}
+        </span>
+      </motion.div>
     </section>
   );
 }
