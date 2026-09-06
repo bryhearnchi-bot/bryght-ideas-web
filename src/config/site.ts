@@ -3,7 +3,7 @@ export const siteConfig = {
   legalName: "BRYght Ideas LLC",
   tagline: "Where bold ideas meet brilliant execution",
   description:
-    "Chicago-based app development studio and technology consultancy building beautiful, AI-powered applications.",
+    "Chicago app studio and technology consultancy. Mobile apps, web apps, AI features and consulting, founder-led on every project.",
   url: "https://bryghtideas.com",
   location: "Chicago, Illinois",
   email: "hello@bryghtideas.com",
@@ -11,47 +11,64 @@ export const siteConfig = {
   nav: {
     links: [
       { label: "Services", href: "#services" },
-      { label: "Portfolio", href: "#portfolio" },
+      { label: "Work", href: "#work" },
       { label: "Approach", href: "#approach" },
       { label: "Founder", href: "#founder" },
     ],
-    cta: { label: "Get in Touch", href: "#contact" },
+    cta: { label: "Start a conversation", href: "#contact" },
   },
 
   hero: {
-    headline: "We Build Apps\nThat Matter",
+    eyebrow: "Chicago app studio · Founder-led · AI-augmented",
+    headline: "We build\napps that",
+    rollingWords: ["matter.", "travel.", "perform.", "sail."],
     subheadline:
-      "Boutique app development & technology consulting from Chicago. We combine 20+ years of tech expertise with AI-augmented development to create exceptional digital experiences.",
-    cta: { text: "Start a Conversation", href: "#contact" },
-    secondaryCta: { text: "See Our Work", href: "#portfolio" },
+      "Boutique app development and technology consulting from Chicago. Twenty-plus years of experience, AI-augmented development, and the founder on every project.",
+    cta: { text: "Start a conversation", href: "#contact" },
+    secondaryCta: { text: "See the work", href: "#work" },
+    ringText: "Bold ideas · Brilliant execution · ",
+    marquee: ["KGAY Travel", "BetweenActs", "Ahoy", "Your app next"],
+  },
+
+  // Heading + intro for the services section. Kept alongside `services`
+  // (which stays an array) so existing consumers keep compiling.
+  servicesSection: {
+    heading: "What we do",
+    intro: "Four services. One small team that does all of them well.",
   },
 
   services: [
     {
       icon: "Smartphone",
-      title: "Mobile App Development",
-      description:
-        "Native and cross-platform mobile experiences built with modern frameworks. From concept to App Store.",
+      title: "Mobile apps",
+      description: "Native and cross-platform. From concept to App Store.",
     },
     {
       icon: "Globe",
-      title: "Web Applications",
+      title: "Web apps",
       description:
-        "Full-stack web applications with stunning interfaces and robust backends. Built to scale.",
+        "Full-stack, stunning interfaces, robust backends. Built to scale.",
     },
     {
       icon: "Brain",
-      title: "AI-Powered Solutions",
+      title: "AI features",
       description:
-        "Intelligent features that transform user experiences. We integrate AI where it creates real value.",
+        "AI where it creates real value for the people using the app.",
     },
     {
       icon: "Lightbulb",
-      title: "Technology Consulting",
+      title: "Consulting",
       description:
-        "Strategic guidance for your tech decisions. Architecture, stack selection, and digital transformation.",
+        "Architecture, stack selection, and digital transformation.",
     },
   ],
+
+  // Heading + intro for the work section (renders the `apps` list).
+  work: {
+    heading: "Our own\napps,\ntoo.",
+    intro:
+      "We don’t just build for clients. The lab is where the process gets tested first.",
+  },
 
   apps: [
     {
@@ -59,7 +76,7 @@ export const siteConfig = {
       category: "Travel & Hospitality",
       description:
         "Reimagining how travelers discover and book inclusive experiences worldwide.",
-      color: "#2563eb",
+      color: "#F7FAFF",
       icon: "Plane",
       status: "Live",
       screenshot: "/kgay-app-screenshot.png",
@@ -69,9 +86,9 @@ export const siteConfig = {
       category: "Entertainment",
       description:
         "The ultimate companion for theater lovers — enhancing every moment of the live experience.",
-      color: "#7c3aed",
+      color: "#1E90F0",
       icon: "Drama",
-      status: "In Development",
+      status: "In development",
       screenshot: "/betweenacts-app-screenshot.png",
     },
     {
@@ -79,57 +96,67 @@ export const siteConfig = {
       category: "Travel & Lifestyle",
       description:
         "Your digital cruise companion — making every voyage seamless and unforgettable.",
-      color: "#06b6d4",
+      color: "#1E90F0",
       icon: "Ship",
-      status: "In Development",
+      status: "In development",
     },
     {
       name: "More Coming",
       category: "Various",
-      description:
-        "Our pipeline is full. We're always building the next thing.",
-      color: "#d4a843",
+      description: "Our pipeline is full. We're always building the next thing.",
+      color: "#F7FAFF",
       icon: "Sparkles",
       status: "Stay Tuned",
     },
   ],
 
+  // Heading for the approach section. Kept alongside `approach`
+  // (which stays an array) so existing consumers keep compiling.
+  approachSection: {
+    heading: "How we work",
+  },
+
   approach: [
     {
-      title: "AI-Augmented Development",
+      title: "AI-augmented development",
       description:
-        "We leverage cutting-edge AI tools throughout our development process — from ideation to deployment. This isn't about replacing human creativity; it's about amplifying it.",
+        "AI tools from ideation to deployment. Amplifying human creativity, not replacing it.",
     },
     {
-      title: "Modern Stack, No Compromises",
+      title: "Modern stack, no compromises",
       description:
-        "React Native, Next.js, TypeScript, Tailwind CSS, and cloud-native architecture. We use the tools that let us build fast without sacrificing quality.",
+        "React Native, Next.js, TypeScript, Tailwind, cloud-native architecture.",
     },
     {
-      title: "Founder-Led, Every Project",
+      title: "Founder-led, every project",
       description:
-        "No account managers, no layers of bureaucracy. You work directly with the founder and a lean, expert team that cares deeply about the outcome.",
+        "No account managers. You work with the founder and a lean expert team.",
     },
     {
-      title: "Built to Last",
-      description:
-        "Clean architecture, comprehensive testing, and documentation that actually helps. We build products that your team can maintain and evolve.",
+      title: "Built to last",
+      description: "Clean architecture, real tests, documentation that helps.",
     },
   ],
 
   founder: {
+    heading: "Hi, I’m Bryan.",
     name: "Bryan Hearn",
     title: "Founder & Principal",
-    bio: "With over 20 years navigating the intersection of technology and business, Bryan brings a rare breadth of experience to every project. From managing enterprise IT infrastructure in hospitality to building recruiting technology platforms, his journey has always centered on one thing: using technology to solve real problems for real people.",
+    bio: "Over 20 years at the intersection of technology and business: enterprise IT in hospitality, recruiting technology platforms, and now a studio where deep technical knowledge meets creative vision, augmented by AI-powered development.",
     bio2: "BRYght Ideas is the culmination of that journey — a studio where deep technical knowledge meets creative vision, augmented by the latest in AI-powered development.",
     location: "Chicago, Illinois",
+  },
+
+  contact: {
+    heading: "Let’s talk.",
+    note: "Tell us what you’re building. You’ll hear back from Bryan, not a form.",
   },
 
   footer: {
     tagline: "Building the future, one bright idea at a time.",
     links: [
       { label: "Services", href: "#services" },
-      { label: "Portfolio", href: "#portfolio" },
+      { label: "Work", href: "#work" },
       { label: "Contact", href: "#contact" },
     ],
   },

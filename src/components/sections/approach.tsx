@@ -1,77 +1,55 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { siteConfig } from "@/config/site";
 
+// "How we work" -> "How we" / "work": the last word drops to its own line.
+const headingWords = siteConfig.approachSection.heading.split(" ");
+const headingLastWord = headingWords[headingWords.length - 1];
+const headingFirstLine = headingWords.slice(0, -1).join(" ");
+
 export function Approach() {
+  const reduceMotion = useReducedMotion();
+  const lastIndex = siteConfig.approach.length - 1;
+
   return (
-    <section id="approach" className="py-24 px-6 bg-primary/5">
-      <div className="max-w-[1152px] mx-auto">
-        <div className="text-center mb-20">
-          <h2 className="text-4xl md:text-5xl font-serif font-bold mb-4">
-            Our Approach
-          </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            We&apos;re a lean, AI-augmented studio that moves fast and builds
-            right. No bloated teams, no wasted cycles.
-          </p>
-        </div>
+    <section
+      id="approach"
+      className="grid grid-cols-1 items-start gap-10 bg-offwhite px-[24px] pt-[72px] pb-[72px] text-black md:px-[56px] md:pt-[112px] md:pb-[96px] lg:grid-cols-[480px_minmax(0,1fr)] lg:gap-16"
+    >
+      <h2 className="display m-0 text-[clamp(48px,6.7vw,96px)] uppercase">
+        {headingFirstLine}
+        <br />
+        {headingLastWord}
+      </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
-          {siteConfig.approach.map((item, idx) => {
-            const num = String(idx + 1).padStart(2, "0");
-            return (
-              <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="relative"
-              >
-                <span className="text-7xl font-serif font-black text-foreground/5 absolute -top-10 -left-4 select-none">
-                  {num}
-                </span>
-                <h3 className="text-xl font-bold mb-4 relative z-10">
-                  {item.title}
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed relative z-10">
-                  {item.description}
-                </p>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Stats row */}
-        <div className="mt-20 flex flex-wrap items-center justify-center gap-12">
-          <div className="text-center">
-            <div className="text-3xl font-serif font-bold text-gradient-gold">
-              20+
+      <div className="flex flex-col">
+        {siteConfig.approach.map((item, index) => (
+          <motion.div
+            key={item.title}
+            initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{
+              duration: reduceMotion ? 0 : 0.5,
+              delay: reduceMotion ? 0 : index * 0.06,
+              ease: [0.2, 0.7, 0.2, 1],
+            }}
+            className={`grid grid-cols-[80px_minmax(0,1fr)] items-baseline gap-6 border-t-2 border-black py-7 ${
+              index === lastIndex ? "border-b-2" : ""
+            }`}
+          >
+            <span className="display text-[40px] text-blue-ink">
+              {String(index + 1).padStart(2, "0")}
+            </span>
+            <div className="flex flex-col gap-1.5">
+              <span className="display text-[34px]">{item.title}</span>
+              <span className="text-[16px] leading-[1.5] text-[#444444]">
+                {item.description}
+              </span>
             </div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">
-              Years in Tech
-            </div>
-          </div>
-          <div className="w-px h-12 bg-white/10 hidden md:block" />
-          <div className="text-center">
-            <div className="text-3xl font-serif font-bold text-gradient-gold">
-              AI+
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">
-              Augmented Team
-            </div>
-          </div>
-          <div className="w-px h-12 bg-white/10 hidden md:block" />
-          <div className="text-center">
-            <div className="text-3xl font-serif font-bold text-gradient-gold">
-              4+
-            </div>
-            <div className="text-xs text-muted-foreground mt-1 uppercase tracking-wider">
-              Apps in Pipeline
-            </div>
-          </div>
-        </div>
+          </motion.div>
+        ))}
       </div>
     </section>
   );

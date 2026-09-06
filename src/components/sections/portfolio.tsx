@@ -1,99 +1,217 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { Plane, Theater, Ship, Sparkles } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Ship } from "lucide-react";
 import { siteConfig } from "@/config/site";
 
-const iconMap: Record<string, React.ElementType> = {
-  Plane,
-  Drama: Theater,
-  Ship,
-  Sparkles,
+type AppEntry = (typeof siteConfig.apps)[number];
+
+/** Not every app in siteConfig ships a screenshot, so narrow instead of casting. */
+function screenshotOf(app: AppEntry): string | undefined {
+  return "screenshot" in app ? app.screenshot : undefined;
+}
+
+const featuredApps = siteConfig.apps.filter((app) => app.name !== "More Coming");
+const headingLines = siteConfig.work.heading.split("\n");
+
+type FrameSpec = {
+  left: number;
+  top: number;
+  width: number;
+  rotate: number;
+  maxHeight: number;
+  radius: number;
+  borderClass: string;
 };
 
-export function Portfolio() {
-  return (
-    <section id="portfolio" className="py-24 px-6">
-      <div className="max-w-[1152px] mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
-          <div>
-            <h2 className="text-4xl md:text-5xl font-serif font-bold mb-4">
-              Selected Work
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-xl">
-              We don&apos;t just build for clients — we build our own apps too.
-              Here&apos;s what&apos;s in the lab.
-            </p>
-          </div>
-        </div>
+/** Positions of the tilted screens on the 720px desktop stage. */
+const frameSpecs: FrameSpec[] = [
+  {
+    left: 40,
+    top: 60,
+    width: 300,
+    rotate: -6,
+    maxHeight: 640,
+    radius: 32,
+    borderClass: "border-solid border-offwhite",
+  },
+  {
+    left: 340,
+    top: 20,
+    width: 300,
+    rotate: 5,
+    maxHeight: 640,
+    radius: 32,
+    borderClass: "border-solid border-blue-block",
+  },
+  {
+    left: 596,
+    top: 120,
+    width: 220,
+    rotate: -3,
+    maxHeight: 480,
+    radius: 28,
+    borderClass: "border-dashed border-offwhite/50",
+  },
+];
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {siteConfig.apps.map((app, idx) => {
-            const Icon = iconMap[app.icon];
-            return (
-              <motion.div
-                key={app.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="group cursor-pointer"
+const MOBILE_FRAME_WIDTH = 220;
+
+function PhoneFrame({
+  app,
+  spec,
+  width,
+  rotate,
+  className = "",
+  style,
+}: {
+  app: AppEntry;
+  spec: FrameSpec;
+  width: number;
+  rotate: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const screenshot = screenshotOf(app);
+
+  return (
+    <div
+      className={`relative border-[3px] shadow-[0_30px_60px_rgba(0,0,0,0.5)] ${spec.borderClass} ${
+        screenshot
+          ? "overflow-hidden"
+          : "flex flex-col items-center justify-center gap-3 px-4 text-center"
+      } ${className}`}
+      style={{
+        width,
+        aspectRatio: "1320 / 2868",
+        maxHeight: spec.maxHeight,
+        borderRadius: spec.radius,
+        transform: rotate === 0 ? undefined : `rotate(${rotate}deg)`,
+        ...style,
+      }}
+    >
+      {screenshot ? (
+        <Image
+          src={screenshot}
+          alt={`${app.name} app screenshot`}
+          fill
+          sizes="(max-width: 1024px) 220px, 300px"
+          className="object-cover object-top"
+        />
+      ) : (
+        <>
+          <Ship
+            size={56}
+            strokeWidth={1.5}
+            aria-hidden="true"
+            className="text-blue-block"
+          />
+          <span className="label leading-snug text-blue-block">
+            {app.name} · {app.status}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function Portfolio() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <section
+      id="work"
+      className="overflow-hidden bg-black px-6 py-20 text-offwhite lg:px-14 lg:py-28"
+    >
+      <div className="grid gap-12 lg:grid-cols-[480px_minmax(0,1fr)] lg:items-center lg:gap-16">
+        {/* Left: heading, intro, app index */}
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="flex flex-col gap-7"
+        >
+          <h2
+            className="display m-0 uppercase"
+            style={{ fontSize: "clamp(48px, 6.7vw, 96px)" }}
+          >
+            {headingLines.map((line, idx) => (
+              <span
+                key={line}
+                className={
+                  idx === headingLines.length - 1 ? "block text-blue-block" : "block"
+                }
               >
-                <div
-                  className="relative aspect-[4/5] rounded-3xl overflow-hidden mb-6 flex items-center justify-center"
-                  style={{
-                    background: !(app as any).screenshot
-                      ? `linear-gradient(135deg, ${app.color}22, ${app.color}44, ${app.color}11)`
-                      : undefined,
-                  }}
+                {line}
+              </span>
+            ))}
+          </h2>
+
+          <p className="m-0 max-w-[380px] text-[18px] leading-[1.5] text-[#C5CBD6]">
+            {siteConfig.work.intro}
+          </p>
+
+          <div className="flex flex-col gap-3.5 border-t border-offwhite/20 pt-6">
+            {featuredApps.map((app) => (
+              <div
+                key={app.name}
+                className="flex items-baseline justify-between gap-4"
+              >
+                <span className="display text-[28px]">{app.name}</span>
+                <span
+                  className={`label text-right ${
+                    app.status === "Live" ? "text-blue-block" : "text-[#C5CBD6]"
+                  }`}
                 >
-                  {(app as any).screenshot ? (
-                    <Image
-                      src={(app as any).screenshot}
-                      alt={`${app.name} app screenshot`}
-                      fill
-                      className="object-cover object-top transition-transform duration-700 group-hover:scale-105"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
-                  ) : (
-                    <>
-                      <div
-                        className="absolute inset-0 opacity-20"
-                        style={{
-                          background: `radial-gradient(circle at 30% 40%, ${app.color}40, transparent 70%)`,
-                        }}
-                      />
-                      {Icon && (
-                        <Icon
-                          className="h-16 w-16 transition-transform duration-700 group-hover:scale-110"
-                          style={{ color: app.color }}
-                        />
-                      )}
-                    </>
-                  )}
-                  <div className="absolute top-4 right-4 z-10">
-                    <span
-                      className="text-[10px] tracking-wider uppercase font-medium px-3 py-1 rounded-full"
-                      style={{
-                        backgroundColor: `${app.color}20`,
-                        color: app.color,
-                      }}
-                    >
-                      {app.status}
-                    </span>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8 z-10">
-                    <span className="text-white font-bold text-lg">
-                      {app.description}
-                    </span>
-                  </div>
-                </div>
-                <h3 className="text-2xl font-bold mb-1">{app.name}</h3>
-                <p className="text-muted-foreground text-sm uppercase tracking-widest">
-                  {app.category}
-                </p>
-              </motion.div>
+                  {app.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Right: the tilted stage (desktop) */}
+        <motion.div
+          initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
+          className="relative hidden h-[720px] lg:block"
+        >
+          {featuredApps.map((app, idx) => {
+            const spec = frameSpecs[idx];
+            if (!spec) return null;
+            return (
+              <PhoneFrame
+                key={app.name}
+                app={app}
+                spec={spec}
+                width={spec.width}
+                rotate={spec.rotate}
+                className="absolute"
+                style={{ left: spec.left, top: spec.top }}
+              />
+            );
+          })}
+        </motion.div>
+
+        {/* Right: scroll-snap row (mobile / tablet) */}
+        <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-4 lg:hidden">
+          {featuredApps.map((app, idx) => {
+            const spec = frameSpecs[idx];
+            if (!spec) return null;
+            return (
+              <PhoneFrame
+                key={app.name}
+                app={app}
+                spec={spec}
+                width={MOBILE_FRAME_WIDTH}
+                rotate={0}
+                className="shrink-0 snap-start"
+              />
             );
           })}
         </div>
