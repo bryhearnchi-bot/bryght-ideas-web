@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { buildShapes } from "./shapes";
@@ -63,7 +63,9 @@ function ParticleField({ reduced, mobile }: FieldProps) {
     const mat = matRef.current;
     const group = groupRef.current;
     if (!mat || !group) return;
-    const dt = Math.min(delta, 1 / 20);
+    // Generous cap: a throttled or backgrounded browser that only paints now
+    // and then still settles onto the target shape instead of lagging behind.
+    const dt = Math.min(delta, 0.25);
     const { camera, size } = state;
 
     // Camera distance keeps the shapes framed on narrow portrait screens.
@@ -83,26 +85,49 @@ function ParticleField({ reduced, mobile }: FieldProps) {
     const t = clockRef.current;
     const m = morphRef.current;
     const waveW = THREE.MathUtils.clamp(m - 4, 0, 1);
+    const heroW = THREE.MathUtils.clamp(1 - m, 0, 1);
+    const phoneW = THREE.MathUtils.clamp(1 - Math.abs(m - 1), 0, 1);
     const globeW = THREE.MathUtils.clamp(1 - Math.abs(m - 2), 0, 1);
     const ringW = THREE.MathUtils.clamp(1 - Math.abs(m - 4), 0, 1);
 
     camera.position.z = reduced ? z : THREE.MathUtils.damp(camera.position.z, z, 4, dt);
 
-    // Shapes sit right of the text on wide screens, above it on phones.
-    const offX = wide ? 1.95 : size.width >= 768 ? 1.2 : 0;
-    const offY = size.width < 768 ? 1.35 : 0;
+    // Shapes sit right of the text on wide screens, above it on phones. On
+    // phones the hero bulb sits high (copy starts mid-screen); the service
+    // shapes drop into the gap between the pinned heading and the glass card
+    // and shrink a touch so they never run under either.
+    const phoneLayout = !wide;
+    const offX = wide ? 1.95 : 0;
+    // Stacked layouts work in fractions of the visible height so phones and
+    // portrait tablets frame the same way: bulb centred ~30% down, service
+    // shapes ~38% down (between the pinned heading and the card).
+    const visH = 2 * z * TAN_HALF_FOV;
+    const offY = phoneLayout ? THREE.MathUtils.lerp(0.12, 0.2, heroW) * visH : 0;
+    const stackScale = THREE.MathUtils.lerp(
+      Math.min(0.84, (0.4 * visH) / 2.9),
+      Math.min(1, (0.42 * visH) / 3.05),
+      heroW,
+    );
+    const scaleTarget = THREE.MathUtils.lerp(phoneLayout ? stackScale : 1, 1, waveW);
     const tx = offX * (1 - waveW);
     const ty = offY * (1 - waveW);
     if (reduced) {
       group.position.set(tx, ty, 0);
+      group.scale.setScalar(scaleTarget);
     } else {
       group.position.x = THREE.MathUtils.damp(group.position.x, tx, 3, dt);
       group.position.y = THREE.MathUtils.damp(group.position.y, ty, 3, dt);
+      group.scale.setScalar(THREE.MathUtils.damp(group.scale.x, scaleTarget, 3, dt));
     }
 
-    if (!reduced) spinRef.current += dt * (0.22 * globeW + 0.12 * ringW);
-    const sway = 1 - waveW;
-    group.rotation.y = spinRef.current + Math.sin(t * 0.17) * 0.42 * sway;
+    // Only the globe spins; its angle is folded into [-pi, pi] and weighted
+    // by the globe's share, so the phone and ring always come back facing
+    // the camera instead of inheriting a leftover edge-on rotation.
+    if (!reduced && globeW > 0) spinRef.current = (spinRef.current + dt * 0.22) % (Math.PI * 2);
+    const spin = spinRef.current > Math.PI ? spinRef.current - Math.PI * 2 : spinRef.current;
+    // Flat shapes (phone, ring) sway less so they stay readable.
+    const sway = (1 - waveW) * (1 - 0.6 * Math.max(phoneW, ringW));
+    group.rotation.y = spin * globeW + Math.sin(t * 0.17) * 0.42 * sway;
     group.rotation.x = Math.sin(t * 0.13) * 0.1 * sway;
     group.rotation.z = Math.sin(t * 0.09) * 0.04 * sway;
 
@@ -140,16 +165,8 @@ function ParticleField({ reduced, mobile }: FieldProps) {
   );
 }
 
-function subscribeVisibility(cb: () => void) {
-  document.addEventListener("visibilitychange", cb);
-  return () => document.removeEventListener("visibilitychange", cb);
-}
-const getVisible = () => document.visibilityState === "visible";
-const getVisibleServer = () => true;
-
 export default function SignalCanvas({ reduced, mobile }: FieldProps) {
   const [ready, setReady] = useState(false);
-  const visible = useSyncExternalStore(subscribeVisibility, getVisible, getVisibleServer);
 
   return (
     <div className="sg-canvas" data-ready={ready ? "true" : "false"} aria-hidden="true">
@@ -158,7 +175,9 @@ export default function SignalCanvas({ reduced, mobile }: FieldProps) {
         dpr={mobile ? [1, 1.25] : [1, 1.75]}
         camera={{ fov: 45, position: [0, 0, 6.2], near: 0.1, far: 60 }}
         gl={{ antialias: false, alpha: true, powerPreference: "high-performance" }}
-        frameloop={reduced ? "demand" : visible ? "always" : "never"}
+        // The browser already throttles rAF in background tabs; gating on
+        // visibilityState left embedded/preview panes with a blank canvas.
+        frameloop={reduced ? "demand" : "always"}
         fallback={<StaticBackdrop />}
         onCreated={() => setReady(true)}
         style={{ pointerEvents: "none", touchAction: "pan-y" }}

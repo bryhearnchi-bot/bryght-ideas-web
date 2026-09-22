@@ -361,10 +361,12 @@ function brain(n: number, sparks: number, rng: Rng) {
 
 function torus(n: number, sparks: number, rng: Rng) {
   const out = new Float32Array(n * 3);
-  const R = 1.2;
-  const r = 0.34;
-  const ringR = 1.85;
-  const tilt = 1.12;
+  const R = 1.18;
+  const r = 0.3;
+  const ringR = 1.78;
+  // Mostly facing the camera (pi/2 would be edge-on-to-camera flat circle),
+  // with enough lean to read as a solid donut with depth.
+  const tilt = 1.2;
   const ct = Math.cos(tilt);
   const st = Math.sin(tilt);
 

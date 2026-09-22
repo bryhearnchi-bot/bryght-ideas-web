@@ -70,7 +70,7 @@
   mask-image: radial-gradient(30% 38% at 72% 42%, #000 30%, transparent 75%);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .sg-static-glow {
     background:
       radial-gradient(70% 34% at 50% 30%, rgba(30, 144, 240, 0.3), transparent 70%),
@@ -107,7 +107,7 @@
   border: 1px solid var(--sg-line);
 }
 
-@media (max-width: 767px) {
+@media (max-width: 1023px) {
   .sg-glass-sm {
     background: var(--sg-glass);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
@@ -283,5 +283,25 @@
   .sg-canvas canvas,
   .sg-rail-tick > span {
     transition: none;
+  }
+}
+
+/* Hero entrance: CSS only, so the copy never depends on hydration. */
+.sg-rise {
+  display: block;
+  animation: sg-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: var(--sg-d, 0s);
+}
+
+@keyframes sg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sg-rise {
+    animation: none;
   }
 }

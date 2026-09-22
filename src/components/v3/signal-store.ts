@@ -7,7 +7,7 @@
 type Listener = () => void;
 
 export const signalStore = {
-  /** 0 bulb · 1 phone · 2 globe · 3 network · 4 ring · 5 wave */
+  /** 0 bulb · 1 phone · 2 globe · 3 network · 4 ring · 5 wave (everything below services) */
   morph: 0,
   /** Brightness of the field, lowered behind dense content. */
   dim: 1,

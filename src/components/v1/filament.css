@@ -66,8 +66,8 @@
 .f1-static-bulb {
   position: absolute;
   left: 50%;
-  top: 22%;
-  width: min(34vh, 58vw);
+  top: 27%;
+  width: min(26vh, 48vw);
   transform: translate(-50%, -50%);
 }
 .f1-static-bulb img {
@@ -89,6 +89,20 @@
    backdrop turns black instead so the lit bulb can glow behind the copy. */
 .f1-root[data-scene="on"] .f1-contact {
   background-color: transparent;
+}
+
+/* Below 1024px the bulb only lives in the hero and contact windows; the
+   sections between are opaque so it never sits behind body copy. The
+   first one feathers in so there is no seam against the studio backdrop. */
+@media (max-width: 1023.98px) {
+  .f1-root[data-scene="on"] #services {
+    background: linear-gradient(to bottom, rgba(247, 250, 255, 0), #f7faff 140px);
+  }
+  .f1-root[data-scene="on"] #work,
+  .f1-root[data-scene="on"] #approach,
+  .f1-root[data-scene="on"] #founder {
+    background: #f7faff;
+  }
 }
 
 /* On desktop the 3D phones replace the HTML screenshots. */
@@ -121,4 +135,43 @@ footer .f1-focus:focus-visible,
 }
 .f1-phones-html > div::-webkit-scrollbar {
   display: none;
+}
+
+/* ---- Rolling headline word -------------------------------------------- */
+
+/* One word at a time inside a clipped black box. The box height is the
+   line box, so the word can never spill a neighbour into view. */
+.f1-roll {
+  display: inline-block;
+  max-width: 100%;
+  height: 1em;
+  padding: 0 0.12em;
+  border-radius: 0.06em;
+  background: #111111;
+  color: #f7faff;
+  line-height: 1em;
+  vertical-align: bottom;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.f1-roll-word {
+  display: block;
+  height: 1em;
+  line-height: 1em;
+}
+.f1-roll-word[data-enter="true"] {
+  animation: f1-roll-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes f1-roll-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .f1-roll-word {
+    animation: none;
+  }
 }

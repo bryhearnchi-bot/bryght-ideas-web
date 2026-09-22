@@ -94,7 +94,7 @@ export function Backdrop() {
     (u.uGlowPos.value as THREE.Vector2).copy(bus.glowUv);
     u.uGlow.value = light * cur.glow * (0.75 + 0.25 * cur.dark);
     // Glow radius tracks the bulb's on-screen size (in viewport heights).
-    u.uRadius.value = Math.max(0.08, (cur.s * 3.1) / bus.H) * (1 + 0.5 * cur.dark);
+    u.uRadius.value = Math.max(0.08, (cur.s * 3.1) / bus.H) * (1 - 0.45 * cur.dark);
   });
 
   return (

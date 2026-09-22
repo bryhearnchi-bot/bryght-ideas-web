@@ -3,7 +3,7 @@
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
-import { ContactShadows, MeshTransmissionMaterial } from "@react-three/drei";
+import { MeshTransmissionMaterial } from "@react-three/drei";
 import {
   BULB_H,
   CAM_Z,
@@ -13,6 +13,7 @@ import {
   dampPose,
   flicker,
   makePose,
+  narrowTarget,
   posesFor,
   sampleTrack,
   switchAt,
@@ -162,8 +163,38 @@ const RAYS = [
   };
 });
 
-export function Bulb({ wide, still }: { wide: boolean; still: boolean }) {
+/** Soft radial falloff for the floor shadow (no extra render pass). */
+function makeShadowTexture() {
+  const size = 128;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  if (ctx) {
+    const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    g.addColorStop(0, "rgba(13,42,82,0.55)");
+    g.addColorStop(0.45, "rgba(13,42,82,0.22)");
+    g.addColorStop(1, "rgba(13,42,82,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, size, size);
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+export function Bulb({
+  wide,
+  still,
+  onFirstFrame,
+}: {
+  wide: boolean;
+  still: boolean;
+  onFirstFrame?: () => void;
+}) {
   const geo = useMemo(() => buildGeometries(wide ? "high" : "low"), [wide]);
+  const shadowTex = useMemo(() => makeShadowTexture(), []);
+  const shadowMat = useRef<THREE.MeshBasicMaterial>(null);
+  const firstFrame = useRef(false);
 
   const poseRef = useRef<THREE.Group>(null);
   const shadowRef = useRef<THREE.Group>(null);
@@ -198,18 +229,22 @@ export function Bulb({ wide, still }: { wide: boolean; still: boolean }) {
     }
 
     const scrollY = still ? 0 : window.scrollY;
-    sampleTrack(scrollY, f.poses, f.target);
+    if (wide || still) sampleTrack(scrollY, f.poses, f.target);
+    else narrowTarget(scrollY, size.height, H / Math.max(1, size.height), f.poses, f.target);
     if (!f.cur) f.cur = { ...f.target };
     const dt = Math.min(delta, 0.1);
-    dampPose(f.cur, f.target, still ? 1 : 1 - Math.exp(-dt * 5));
+    // While the tab is hidden frames are driven by hand, far apart: snap.
+    const snap = still || bus.snap;
+    // Narrow poses are attached to the page, so they track scroll exactly.
+    dampPose(f.cur, f.target, snap || !wide ? 1 : 1 - Math.exp(-dt * 5));
     const cur = f.cur;
 
     const sw = still ? 1 : switchAt(scrollY);
-    f.sw += (sw - f.sw) * (still ? 1 : 1 - Math.exp(-dt * 10));
+    f.sw += (sw - f.sw) * (snap ? 1 : 1 - Math.exp(-dt * 10));
     const light = still ? 1 : flicker(f.sw);
 
     // Pointer follow (desktop only; bus.pointer stays 0 elsewhere).
-    const pk = still ? 1 : 1 - Math.exp(-dt * 3);
+    const pk = snap ? 1 : 1 - Math.exp(-dt * 3);
     f.px += (bus.pointer.x - f.px) * pk;
     f.py += (bus.pointer.y - f.py) * pk;
 
@@ -233,6 +268,7 @@ export function Bulb({ wide, still }: { wide: boolean; still: boolean }) {
       shadow.visible = cur.shadow > 0.02;
       shadow.scale.setScalar(Math.max(0.001, cur.shadow));
     }
+    if (shadowMat.current) shadowMat.current.opacity = cur.shadow;
 
     if (filamentMat.current) filamentMat.current.emissiveIntensity = 0.05 + light * 6;
     if (glassMat.current) glassMat.current.emissiveIntensity = light * 0.3;
@@ -260,20 +296,26 @@ export function Bulb({ wide, still }: { wide: boolean; still: boolean }) {
     bus.W = W;
     bus.H = H;
     bus.workX = f.poses[2]?.x ?? 0;
+
+    if (!firstFrame.current) {
+      firstFrame.current = true;
+      onFirstFrame?.();
+    }
   });
 
   return (
     <group ref={poseRef}>
       <group ref={shadowRef} position={[0, -BULB_H / 2 - 0.01, 0]}>
-        <ContactShadows
-          scale={3.4}
-          far={1.6}
-          blur={2.6}
-          opacity={0.5}
-          resolution={wide ? 256 : 128}
-          frames={1}
-          color="#0d2a52"
-        />
+        <mesh position={[0, 0.02, -0.3]} scale={[2.3, 0.34, 1]}>
+          <planeGeometry args={[1, 1]} />
+          <meshBasicMaterial
+            ref={shadowMat}
+            map={shadowTex}
+            transparent
+            depthWrite={false}
+            toneMapped={false}
+          />
+        </mesh>
       </group>
 
       <group ref={tiltRef}>

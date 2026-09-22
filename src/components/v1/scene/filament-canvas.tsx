@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useCallback, useEffect, useRef } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, PerspectiveCamera } from "@react-three/drei";
 import { useMediaQuery, usePageVisible } from "../hooks";
@@ -19,6 +19,41 @@ function SettleFrames() {
     const ids = [0, 60, 250, 700, 1500].map((ms) => window.setTimeout(() => invalidate(), ms));
     return () => ids.forEach((id) => window.clearTimeout(id));
   }, [invalidate]);
+  return null;
+}
+
+/**
+ * requestAnimationFrame stops while the tab is hidden (background tabs,
+ * some headless/automation panes), which would leave an empty canvas.
+ * In that state render frames by hand on scroll/resize and on a slow timer
+ * so the bulb is always drawn where it belongs.
+ */
+function HiddenDriver({ visible }: { visible: boolean }) {
+  const advance = useThree((s) => s.advance);
+  useEffect(() => {
+    bus.snap = !visible;
+    if (visible) return;
+    let queued = false;
+    const tick = () => {
+      queued = false;
+      advance(performance.now());
+    };
+    const onEvent = () => {
+      if (queued) return;
+      queued = true;
+      window.setTimeout(tick, 0);
+    };
+    tick();
+    const id = window.setInterval(tick, 250);
+    window.addEventListener("scroll", onEvent, { passive: true });
+    window.addEventListener("resize", onEvent);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener("scroll", onEvent);
+      window.removeEventListener("resize", onEvent);
+      bus.snap = false;
+    };
+  }, [visible, advance]);
   return null;
 }
 
@@ -50,6 +85,24 @@ export default function FilamentCanvas({
   const wide = useMediaQuery("(min-width: 1024px)");
   const finePointer = useMediaQuery("(hover: hover) and (pointer: fine)");
   const visible = usePageVisible();
+
+  // The canvas sizes itself from a ResizeObserver, which never fires in a
+  // hidden tab, so the scene would not mount until the tab is shown. Nudge
+  // it with window resize events (which it also listens to) until the
+  // first frame lands.
+  const drawn = useRef(false);
+  const handleFirstFrame = useCallback(() => {
+    drawn.current = true;
+    onReady();
+  }, [onReady]);
+  useEffect(() => {
+    if (visible) return;
+    const id = window.setInterval(() => {
+      if (drawn.current) window.clearInterval(id);
+      else window.dispatchEvent(new Event("resize"));
+    }, 300);
+    return () => window.clearInterval(id);
+  }, [visible]);
 
   // Section positions drive the choreography; re-measure whenever layout
   // shifts (resize, fonts, images).
@@ -97,7 +150,6 @@ export default function FilamentCanvas({
       dpr={wide ? [1, 1.75] : [1, 1.5]}
       frameloop={!visible ? "never" : still ? "demand" : "always"}
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
-      onCreated={() => onReady()}
       style={{ pointerEvents: "none", touchAction: "pan-y" }}
       aria-hidden
     >
@@ -109,13 +161,13 @@ export default function FilamentCanvas({
       <directionalLight position={[3, 5, 4]} intensity={1.3} />
       <Studio wide={wide} />
 
-      <Bulb key={wide ? "wide" : "narrow"} wide={wide} still={still} />
+      <Bulb key={wide ? "wide" : "narrow"} wide={wide} still={still} onFirstFrame={handleFirstFrame} />
       {wide && !still ? (
         <Suspense fallback={null}>
           <Phones />
         </Suspense>
       ) : null}
-      {still ? <SettleFrames /> : null}
+      {still ? <SettleFrames /> : <HiddenDriver visible={visible} />}
     </Canvas>
   );
 }

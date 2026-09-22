@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type CSSProperties } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowDown, ArrowUpRight, Ship } from "lucide-react";
@@ -191,72 +191,73 @@ function RollingWord({ reduced }: { reduced: boolean }) {
 
 function Hero({ reduced }: { reduced: boolean }) {
   const lines = siteConfig.hero.headline.split("\n");
-  const rise = (delay: number) =>
-    reduced
-      ? {}
-      : {
-          initial: { opacity: 0, y: 28 },
-          animate: { opacity: 1, y: 0 },
-          transition: { duration: 0.9, delay, ease: EASE },
-        };
+  // Entrance is pure CSS (see .sg-rise): the copy is in the server HTML at
+  // full strength and never waits on hydration or a JS animation frame.
+  const rise = (delay: number) => ({
+    className: "sg-rise",
+    style: { "--sg-d": `${delay}s` } as CSSProperties,
+  });
 
   return (
     <section
       id="top"
       data-morph="0"
-      className="relative flex flex-col justify-end px-5 pt-24 pb-16 md:px-10 md:pb-20"
+      className="relative flex flex-col justify-start px-5 pt-[max(52svh,400px)] pb-16 lg:justify-end lg:px-10 lg:pt-24 lg:pb-20"
       style={{ minHeight: "100svh" }}
     >
-      {/* Phones: a scrim so the copy stays crisp over the field. */}
+      {/* Phones: a scrim under the copy so it stays crisp over the field. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[72%] bg-gradient-to-t from-[#0a0d14] via-[rgba(10,13,20,0.78)] to-transparent md:hidden"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] bg-gradient-to-t from-[#0a0d14] via-[rgba(10,13,20,0.82)] to-transparent lg:hidden"
       />
       <div className="relative mx-auto w-full max-w-[1440px]">
-        <motion.p {...rise(0.1)} className="label m-0 mb-6 text-[#9aa6ba]">
-          {siteConfig.hero.eyebrow}
-        </motion.p>
+        <p {...rise(0.1)}>
+          <span className="label m-0 mb-5 block text-balance text-[#9aa6ba] lg:mb-6">
+            {siteConfig.hero.eyebrow}
+          </span>
+        </p>
 
         <h1
           className="sg-display m-0 max-w-[11ch] text-[#eef3fb]"
-          style={{ fontSize: "clamp(58px, 9.5vw, 150px)" }}
+          style={{ fontSize: "clamp(52px, 9.5vw, 150px)" }}
         >
           {lines.map((line, idx) => (
-            <Fragment key={line}>
-              <motion.span {...rise(0.18 + idx * 0.08)} className="block">
-                {line}
-              </motion.span>
-            </Fragment>
+            <span key={line} {...rise(0.18 + idx * 0.08)}>
+              <span className="block">{line}</span>
+            </span>
           ))}
-          <motion.span {...rise(0.34)} className="block text-blue-block">
-            <RollingWord reduced={reduced} />
-          </motion.span>
+          <span {...rise(0.34)}>
+            <span className="block text-blue-block">
+              <RollingWord reduced={reduced} />
+            </span>
+          </span>
         </h1>
 
-        <motion.div
+        <div
           {...rise(0.5)}
-          className="mt-10 grid gap-8 md:mt-12 md:grid-cols-[minmax(0,560px)_auto] md:items-end md:justify-between"
         >
-          <p className="m-0 max-w-[560px] text-[17px] leading-[1.55] text-[#b9c3d4] md:text-[19px]">
-            {siteConfig.hero.subheadline}
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <a
-              href={siteConfig.hero.cta.href}
-              className="label inline-flex items-center justify-center gap-2 rounded-full bg-blue-block px-7 py-4 text-[#0a0d14] transition-colors duration-200 hover:bg-yellow"
-            >
-              {siteConfig.hero.cta.text}
-              <ArrowUpRight size={16} strokeWidth={2.5} aria-hidden="true" />
-            </a>
-            <a
-              href={siteConfig.hero.secondaryCta.href}
-              className="label inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(238,243,251,0.22)] px-7 py-4 text-[#eef3fb] transition-colors duration-200 hover:border-[#eef3fb]"
-            >
-              {siteConfig.hero.secondaryCta.text}
-              <ArrowDown size={16} strokeWidth={2.5} aria-hidden="true" />
-            </a>
+          <div className="mt-8 grid gap-7 lg:mt-12 lg:grid-cols-[minmax(0,560px)_auto] lg:items-end lg:justify-between lg:gap-8">
+            <p className="m-0 max-w-[560px] text-[16px] leading-[1.55] text-[#b9c3d4] lg:text-[19px]">
+              {siteConfig.hero.subheadline}
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a
+                href={siteConfig.hero.cta.href}
+                className="label inline-flex items-center justify-center gap-2 rounded-full bg-blue-block px-7 py-4 text-[#0a0d14] transition-colors duration-200 hover:bg-yellow"
+              >
+                {siteConfig.hero.cta.text}
+                <ArrowUpRight size={16} strokeWidth={2.5} aria-hidden="true" />
+              </a>
+              <a
+                href={siteConfig.hero.secondaryCta.href}
+                className="label inline-flex items-center justify-center gap-2 rounded-full border border-[rgba(238,243,251,0.22)] px-7 py-4 text-[#eef3fb] transition-colors duration-200 hover:border-[#eef3fb]"
+              >
+                {siteConfig.hero.secondaryCta.text}
+                <ArrowDown size={16} strokeWidth={2.5} aria-hidden="true" />
+              </a>
+            </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -279,12 +280,12 @@ function ServiceCopy({
         {String(index + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
       </p>
       <h3
-        className="sg-display m-0 mt-4 text-[#eef3fb]"
-        style={{ fontSize: compact ? "clamp(44px, 12vw, 64px)" : "clamp(52px, 8vw, 128px)" }}
+        className="sg-display m-0 mt-2 text-[#eef3fb] md:mt-4"
+        style={{ fontSize: compact ? "clamp(40px, 7.4vw, 112px)" : "clamp(52px, 8vw, 128px)" }}
       >
         {s.title}
       </h3>
-      <p className="m-0 mt-5 max-w-[440px] text-[17px] leading-[1.55] text-[#b9c3d4] md:text-[19px]">
+      <p className="m-0 mt-3 max-w-[440px] text-[15px] leading-[1.5] text-[#b9c3d4] md:mt-5 md:text-[19px]">
         {s.description}
       </p>
     </>
@@ -295,96 +296,111 @@ function Services({ reduced, active }: { reduced: boolean; active: number }) {
   const services = siteConfig.services;
   const heading = siteConfig.servicesSection.heading;
 
-  return (
-    <section id="services" aria-labelledby="sg-services-h" className="relative">
-      <div className="mx-auto grid max-w-[1440px] gap-6 px-5 pt-24 pb-10 md:grid-cols-[minmax(0,1fr)_minmax(0,420px)] md:items-end md:px-10 md:pt-40">
-        <h2
-          id="sg-services-h"
-          className="sg-display m-0 text-[#eef3fb]"
-          style={{ fontSize: "clamp(48px, 7vw, 112px)" }}
-        >
-          {heading}
-        </h2>
-        <p className="m-0 text-[17px] leading-[1.55] text-[#9aa6ba] md:text-[19px]">
-          {siteConfig.servicesSection.intro}
-        </p>
-      </div>
+  const header = (
+    <div className="max-w-[600px]">
+      <h2
+        id="sg-services-h"
+        className="sg-display m-0 text-[#eef3fb]"
+        style={{ fontSize: "clamp(40px, 5.6vw, 88px)" }}
+      >
+        {heading}
+      </h2>
+      <p className="m-0 mt-3 max-w-[420px] text-[15px] leading-[1.5] text-[#9aa6ba] lg:mt-5 lg:text-[18px]">
+        {siteConfig.servicesSection.intro}
+      </p>
+    </div>
+  );
 
-      {reduced ? (
-        // Reduced motion: no pinning, one panel per service.
-        <div className="mx-auto flex max-w-[1440px] flex-col px-5 md:px-10">
+  if (reduced) {
+    // Reduced motion: no pinning, one panel per service.
+    return (
+      <section id="services" aria-labelledby="sg-services-h" className="relative">
+        <div className="mx-auto max-w-[1440px] px-5 pt-28 lg:px-10 lg:pt-40">{header}</div>
+        <div className="mx-auto flex max-w-[1440px] flex-col px-5 lg:px-10">
           {services.map((s, i) => (
             <div
               key={s.title}
               data-morph={i + 1}
-              className="flex min-h-[80svh] items-end pb-16 md:items-center md:pb-0"
+              className="flex min-h-[80svh] items-end pb-16 lg:items-center lg:pb-0"
             >
-              <div className="sg-glass-sm w-full max-w-[560px] rounded-[24px] p-6 md:p-0">
+              <div className="sg-glass-sm w-full max-w-[560px] rounded-[24px] p-6 lg:p-0">
                 <ServiceCopy index={i} />
               </div>
             </div>
           ))}
         </div>
-      ) : (
-        <div className="relative" style={{ height: `${services.length * 100}svh` }}>
-          {services.map((s, i) => (
-            <div
-              key={s.title}
-              data-morph={i + 1}
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0"
-              style={{ top: `${i * 100}svh`, height: "100svh" }}
-            />
-          ))}
+      </section>
+    );
+  }
 
-          <ul className="sr-only">
-            {services.map((s) => (
-              <li key={s.title}>
-                {s.title}: {s.description}
-              </li>
-            ))}
-          </ul>
+  return (
+    <section
+      id="services"
+      aria-labelledby="sg-services-h"
+      className="relative"
+      style={{ height: `${services.length * 100}svh` }}
+    >
+      {services.map((s, i) => (
+        <div
+          key={s.title}
+          data-morph={i + 1}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0"
+          style={{ top: `${i * 100}svh`, height: "100svh" }}
+        />
+      ))}
 
-          <div className="sticky top-0 flex h-svh items-end px-5 pb-20 md:items-center md:px-10 md:pb-0">
-            <div className="mx-auto w-full max-w-[1440px]">
-              <div
-                aria-hidden="true"
-                className="sg-glass-sm w-full max-w-[600px] rounded-[24px] p-6 md:p-0"
-              >
-                <div className="mb-8 grid grid-cols-4 gap-2 md:mb-12">
-                  {services.map((s, i) => (
-                    <div key={s.title} className="flex flex-col gap-2">
-                      <div className="sg-rail-tick" data-on={i <= active ? "true" : "false"}>
-                        <span />
-                      </div>
-                      <span
-                        className={`hidden text-[12px] font-medium transition-colors duration-300 sm:block ${
-                          i === active ? "text-[#eef3fb]" : "text-[#6f7b90]"
-                        }`}
-                      >
-                        {s.title}
-                      </span>
-                    </div>
-                  ))}
+      <ul className="sr-only">
+        {services.map((s) => (
+          <li key={s.title}>
+            {s.title}: {s.description}
+          </li>
+        ))}
+      </ul>
+
+      {/*
+        The whole stage pins, heading included, and it starts below the fixed
+        nav: nothing in it can slide under the nav while it is pinned.
+      */}
+      <div className="sticky top-0 flex h-svh flex-col px-5 pt-[84px] pb-20 md:pt-[108px] lg:px-10 lg:pt-[120px] lg:pb-16">
+        <div className="mx-auto flex w-full max-w-[1440px] flex-1 flex-col justify-between lg:justify-start">
+          {header}
+          <div
+            aria-hidden="true"
+            className="sg-glass-sm w-full max-w-[600px] rounded-[24px] p-5 lg:mt-14 lg:p-0"
+          >
+            <div className="mb-5 grid grid-cols-4 gap-2 lg:mb-10">
+              {services.map((s, i) => (
+                <div key={s.title} className="flex flex-col gap-2">
+                  <div className="sg-rail-tick" data-on={i <= active ? "true" : "false"}>
+                    <span />
+                  </div>
+                  <span
+                    className={`hidden text-[12px] font-medium transition-colors duration-300 sm:block ${
+                      i === active ? "text-[#eef3fb]" : "text-[#6f7b90]"
+                    }`}
+                  >
+                    {s.title}
+                  </span>
                 </div>
-                <div className="relative min-h-[230px] md:min-h-[300px]">
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.div
-                      key={active}
-                      initial={{ opacity: 0, y: 24 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -16 }}
-                      transition={{ duration: 0.4, ease: EASE }}
-                    >
-                      <ServiceCopy index={active} />
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              </div>
+              ))}
+            </div>
+            <div className="relative min-h-[150px] lg:min-h-[250px]">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={active}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -16 }}
+                  transition={{ duration: 0.4, ease: EASE }}
+                >
+                  <ServiceCopy index={active} compact />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -448,7 +464,7 @@ function Work() {
   return (
     <section
       id="work"
-      data-morph="4"
+      data-morph="5"
       data-dim="0.3"
       aria-labelledby="sg-work-h"
       className="relative py-24 md:py-40"
@@ -487,7 +503,8 @@ function Approach() {
   return (
     <section
       id="approach"
-      data-morph="4"
+      data-morph="5"
+      data-dim="0.4"
       aria-labelledby="sg-approach-h"
       className="relative py-24 md:py-40"
     >

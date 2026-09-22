@@ -128,27 +128,32 @@ export function posesFor(W: number, H: number, wide: boolean): Pose[] {
       makePose({ x: 0.25 * W, y: 0.02 * H, z: 0.9, s: fit(0.34, 0.18), phones: 1, glow: 0.8 }),
       makePose({ x: -0.25 * W, y: -0.02 * H, s: fit(0.6, 0.34), rz: -0.16, rx: -0.06 }),
       makePose({ x: -0.34 * W, y: 0.3 * H, s: fit(0.24, 0.16), rz: 0.08, glow: 0.7 }),
-      makePose({ x: 0.25 * W, y: 0, s: fit(0.7, 0.42), rz: -0.06, dark: 1, glow: 1.3 }),
+      makePose({ x: 0.25 * W, y: 0, s: fit(0.7, 0.42), rz: -0.06, dark: 1, glow: 0.75 }),
     ];
   }
 
-  const cs = fit(0.13, 0.22);
-  const companion = makePose({
-    x: W / 2 - (cs * BULB_W) / 2 - 0.035 * W,
-    y: -H / 2 + (cs * BULB_H) / 2 + 0.12 * H,
-    s: cs,
-    rz: -0.12,
-    glow: 0.55,
-  });
+  // Narrow: the bulb lives in two windows only, the hero and the contact
+  // section, and is attached to them (see narrowTarget). The sections in
+  // between are opaque, so it is never behind body copy.
+  const hero = makePose({ x: 0, y: 0.21 * H, s: fit(0.36, 0.78), shadow: 1 });
+  const contact = makePose({ x: 0, y: 0.24 * H, s: fit(0.3, 0.6), dark: 1, glow: 0.7 });
+  return [hero, { ...hero }, { ...hero }, { ...hero }, { ...hero }, contact];
+}
 
-  return [
-    makePose({ x: 0, y: 0.22 * H, s: fit(0.32, 0.62), shadow: 1 }),
-    companion,
-    { ...companion },
-    { ...companion },
-    { ...companion },
-    makePose({ x: 0, y: 0.24 * H, s: fit(0.3, 0.6), dark: 1, glow: 1.25 }),
-  ];
+/**
+ * Narrow-layout target: the hero pose scrolls 1:1 with the hero, the
+ * contact pose 1:1 with the contact section. `k` is world units per px.
+ */
+export function narrowTarget(y: number, vh: number, k: number, poses: Pose[], out: Pose) {
+  const cTop = bus.tops[5];
+  if (cTop !== undefined && y + vh > cTop) {
+    copyPose(out, poses[5]);
+    out.y += (y - cTop) * k;
+    return out;
+  }
+  copyPose(out, poses[0]);
+  out.y += y * k;
+  return out;
 }
 
 /**
@@ -169,6 +174,10 @@ export const bus = {
   H: 4,
   workX: 0,
   glowUv: new Vector2(0.7, 0.5),
+  /** true while the tab is hidden and frames are advanced by hand */
+  snap: false,
+  /** document-space top of each SECTION_IDS entry */
+  tops: [] as number[],
 };
 
 /** Measure section positions into hold ranges on the scroll axis. */
@@ -177,6 +186,7 @@ export function measureStops() {
   const vh = window.innerHeight;
   const sy = window.scrollY;
   const stops: Stop[] = [];
+  const tops: number[] = [];
 
   for (let i = 0; i < SECTION_IDS.length; i++) {
     const el = document.getElementById(SECTION_IDS[i]);
@@ -186,6 +196,7 @@ export function measureStops() {
     }
     const r = el.getBoundingClientRect();
     const top = r.top + sy;
+    tops.push(top);
     const h = r.height;
     let start: number;
     let end: number;
@@ -206,8 +217,11 @@ export function measureStops() {
   }
 
   bus.stops = stops;
+  bus.tops = tops;
   bus.switchStart = vh * 0.02;
-  bus.switchEnd = stops[0].end;
+  // Narrow: the bulb scrolls away with the hero, so it must be fully lit
+  // while still on screen.
+  bus.switchEnd = window.innerWidth >= 1024 ? stops[0].end : vh * 0.16;
 }
 
 /** Target pose for a scroll position. */

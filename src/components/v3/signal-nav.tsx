@@ -24,7 +24,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color] duration-300 ${
           scrolled
-            ? "border-b border-[rgba(238,243,251,0.08)] bg-[rgba(10,13,20,0.62)] backdrop-blur-xl"
+            ? "border-b border-[rgba(238,243,251,0.08)] bg-[rgba(10,13,20,0.84)] backdrop-blur-xl"
             : "border-b border-transparent"
         }`}
       >
@@ -36,7 +36,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
             <Logo />
           </a>
 
-          <div className="hidden items-center gap-8 md:flex">
+          <div className="hidden items-center gap-8 lg:flex">
             {siteConfig.nav.links.map((link) => (
               <a
                 key={link.href}
@@ -57,7 +57,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="-mr-2 p-2 text-[#eef3fb] md:hidden"
+            className="-mr-2 p-2 text-[#eef3fb] lg:hidden"
             aria-label="Open menu"
             aria-expanded={open}
             aria-controls="sg-mobile-menu"
@@ -78,7 +78,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="fixed inset-0 z-[55] flex flex-col bg-[rgba(10,13,20,0.94)] px-5 pb-24 backdrop-blur-xl md:hidden"
+            className="fixed inset-0 z-[55] flex flex-col bg-[rgba(10,13,20,0.94)] px-5 pb-24 backdrop-blur-xl lg:hidden"
           >
             <div className="flex h-16 items-center justify-between">
               <span className="text-[#eef3fb]">

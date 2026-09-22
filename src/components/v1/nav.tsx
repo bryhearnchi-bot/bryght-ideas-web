@@ -30,11 +30,11 @@ export function FilamentNav() {
       }`}
     >
       <div className="flex h-16 items-center justify-between px-5 md:h-[76px] md:px-10">
-        <a href="#top" aria-label={`${siteConfig.name} home`} className="f1-focus rounded-md">
+        <a href="#top" aria-label={`${siteConfig.name} home`} className="f1-focus shrink-0 whitespace-nowrap rounded-md">
           <Logo />
         </a>
 
-        <nav aria-label="Primary" className="hidden items-center gap-8 md:flex">
+        <nav aria-label="Primary" className="hidden items-center gap-5 whitespace-nowrap md:flex lg:gap-8">
           {siteConfig.nav.links.map((link) => (
             <a
               key={link.href}
@@ -46,7 +46,7 @@ export function FilamentNav() {
           ))}
           <a
             href={siteConfig.nav.cta.href}
-            className="f1-focus rounded-full bg-black px-5 py-2.5 text-[15px] font-medium text-offwhite transition-colors hover:bg-blue-ink"
+            className="f1-focus hidden rounded-full bg-black px-5 py-2.5 lg:inline-block text-[15px] font-medium text-offwhite transition-colors hover:bg-blue-ink"
           >
             {siteConfig.nav.cta.label}
           </a>

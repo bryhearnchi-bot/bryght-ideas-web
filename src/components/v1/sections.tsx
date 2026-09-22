@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
-import { RollingWord } from "@/components/hero/rolling-word";
+import { RollingWord } from "./rolling-word";
 import { siteConfig } from "@/config/site";
 
 /*
@@ -39,7 +39,7 @@ export function Hero() {
   return (
     <section
       id="top"
-      className={`relative flex min-h-[100svh] flex-col justify-end pt-[46svh] pb-10 lg:justify-center lg:pt-32 lg:pb-24 ${PAD}`}
+      className={`relative flex min-h-[100svh] flex-col justify-end pt-[50svh] pb-10 lg:justify-center lg:pt-32 lg:pb-24 ${PAD}`}
     >
       <div className="lg:max-w-[54%]">
         <p className="mb-5 text-[14px] font-medium text-black/65 md:text-[15px]">
@@ -148,7 +148,7 @@ export function Work() {
   const lines = siteConfig.work.heading.split("\n");
   return (
     <section id="work" className={`relative scroll-mt-20 py-24 lg:min-h-[110vh] lg:py-40 ${PAD}`}>
-      <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
         <div className="lg:max-w-[560px]">
           <h2 className="display m-0 text-[clamp(44px,11vw,96px)] uppercase lg:text-[clamp(56px,6vw,96px)]">
             {lines.map((l) => (
@@ -231,7 +231,7 @@ export function Founder() {
   const f = siteConfig.founder;
   return (
     <section id="founder" className={`relative scroll-mt-20 py-24 lg:py-40 ${PAD}`}>
-      <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:gap-20">
+      <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:gap-20">
         <div className="mx-auto w-full max-w-[360px] lg:mx-0 lg:mt-24">
           <div className="relative aspect-[4/5] -rotate-2 overflow-hidden rounded-[22px] border-2 border-black bg-black">
             <Image
