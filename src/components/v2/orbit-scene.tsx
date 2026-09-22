@@ -9,7 +9,10 @@ import { buildPoses, layoutFor, poseAt, type Pose } from "./poses";
 import { Phone, PHONE_H, usePhoneGeometries, type PhoneFinish } from "./phone";
 import { createAhoyTexture, createGlareTexture } from "./textures";
 
-const SCREENSHOTS = ["/kgay-app-screenshot.png", "/betweenacts-app-screenshot.png"];
+// The source PNGs are multi-megabyte; load them through the Next image optimiser
+// (WebP, capped width) so the 3D is ready in a fraction of the time.
+const optimised = (src: string, w: number) => `/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
+const SOURCES = ["/kgay-app-screenshot.png", "/betweenacts-app-screenshot.png"];
 
 // KGAY in black, BetweenActs in silver-white, Ahoy in the brand yellow.
 const FINISHES: PhoneFinish[] = [
@@ -36,7 +39,8 @@ function Rig({ reduced, mobile, onReady }: { reduced: boolean; mobile: boolean; 
   const layout = layoutFor(size.width, size.height);
   const poses = useMemo(() => buildPoses(layout), [layout]);
 
-  const shots = useTexture(SCREENSHOTS, (loaded) => {
+  const urls = useMemo(() => SOURCES.map((src) => optimised(src, mobile ? 750 : 1080)), [mobile]);
+  const shots = useTexture(urls, (loaded) => {
     const list = Array.isArray(loaded) ? loaded : [loaded];
     list.forEach((t) => {
       t.colorSpace = THREE.SRGBColorSpace;
@@ -169,7 +173,7 @@ export default function OrbitScene({
           frameloop={frameloop}
           dpr={mobile ? [1, 1.5] : [1, 1.75]}
           shadows="percentage"
-          camera={{ position: [0, 0, 10], fov: 35, near: 0.1, far: 60 }}
+          camera={{ position: [0, 0, 10], fov: 35, near: 1, far: 40 }}
           gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
           style={{ pointerEvents: "none", touchAction: "auto" }}
           onCreated={({ gl }) => {

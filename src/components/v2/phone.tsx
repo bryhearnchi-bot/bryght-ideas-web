@@ -117,17 +117,17 @@ export function Phone({
       </mesh>
 
       {/* Screen: unlit so the real screenshot colours stay true */}
-      <mesh geometry={geo.screen} position-z={front + 0.002}>
+      <mesh geometry={geo.screen} position-z={front + 0.006} renderOrder={1}>
         <meshBasicMaterial map={screen} toneMapped={false} />
       </mesh>
 
       {/* Glass glare */}
-      <mesh geometry={geo.screen} position-z={front + 0.003}>
+      <mesh geometry={geo.screen} position-z={front + 0.009} renderOrder={2}>
         <meshBasicMaterial map={glare} transparent opacity={0.5} depthWrite={false} toneMapped={false} />
       </mesh>
 
       {/* Dynamic island */}
-      <mesh geometry={geo.island} position={[0, SCREEN_H / 2 - 0.12, front + 0.004]}>
+      <mesh geometry={geo.island} position={[0, SCREEN_H / 2 - 0.12, front + 0.012]} renderOrder={3}>
         <meshBasicMaterial color="#050505" />
       </mesh>
 

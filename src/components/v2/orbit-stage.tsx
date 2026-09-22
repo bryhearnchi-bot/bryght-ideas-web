@@ -3,9 +3,9 @@
 import { Fragment, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { ArrowRight, ArrowDown } from "lucide-react";
-import { RollingWord } from "@/components/hero/rolling-word";
+import { RollingWord } from "./rolling-word";
 import { siteConfig } from "@/config/site";
 import { orbitStore } from "./store";
 import { OrbitNav } from "./orbit-nav";
@@ -45,12 +45,23 @@ function backdrop(t: number) {
 
 /* ---------- Static phones: loading placeholder and no-WebGL fallback ---------- */
 
-function StillPhone({ app, className }: { app: AppEntry; className?: string }) {
+function StillPhone({ app, className, eager }: { app: AppEntry; className?: string; eager?: boolean }) {
   const shot = screenshotOf(app);
+  // Stay invisible until the screenshot has decoded, so a still never shows as an empty black slab.
+  const [loaded, setLoaded] = useState(!shot);
   return (
-    <div className={`o2-still-phone ${className ?? ""}`}>
+    <div className={`o2-still-phone ${className ?? ""}`} data-loaded={loaded}>
       {shot ? (
-        <Image src={shot} alt={`${app.name} app screenshot`} fill sizes="(max-width: 768px) 30vw, 260px" className="object-cover" />
+        <Image
+          src={shot}
+          alt={`${app.name} app screenshot`}
+          fill
+          sizes="(max-width: 768px) 30vw, 300px"
+          className="object-cover"
+          loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : "auto"}
+          onLoad={() => setLoaded(true)}
+        />
       ) : (
         <div className="o2-still-ahoy">
           <span className="display">{app.name}</span>
@@ -63,19 +74,35 @@ function StillPhone({ app, className }: { app: AppEntry; className?: string }) {
 
 /* ---------- One app's moment in the showcase ---------- */
 
-function AppPanel({ app, index, reduced }: { app: AppEntry; index: number; reduced: boolean }) {
+function AppPanel({ app, index }: { app: AppEntry; index: number }) {
   const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
-  const opacity = useTransform(scrollYProgress, [0.22, 0.44, 0.62, 0.84], [0, 1, 1, 0]);
-  const y = useTransform(scrollYProgress, [0.22, 0.44, 0.62, 0.84], [60, 0, 0, -60]);
+  // The copy fades in while its panel holds the middle of the viewport. It is
+  // driven by a class + CSS transition (not per-frame scroll maths) so the
+  // active app's text always settles at full opacity.
+  const [inView, setInView] = useState<boolean | null>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), {
+      rootMargin: "-30% 0px -30% 0px",
+    });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const live = app.status === "Live";
 
   return (
-    <section ref={ref} data-orbit-panel className="o2-panel o2-app" aria-labelledby={`o2-app-${index}`}>
+    <section
+      ref={ref}
+      data-orbit-panel
+      data-in={inView === null ? undefined : String(inView)}
+      className="o2-panel o2-app"
+      aria-labelledby={`o2-app-${index}`}
+    >
       <div className="o2-app-still">
         <StillPhone app={app} />
       </div>
-      <motion.div className="o2-app-copy" style={reduced ? undefined : { opacity, y }}>
+      <div className="o2-app-copy">
         <div className="o2-app-meta">
           <span className="o2-counter">
             {String(index + 1).padStart(2, "0")}
@@ -91,7 +118,7 @@ function AppPanel({ app, index, reduced }: { app: AppEntry; index: number; reduc
           <span className="o2-status-dot" aria-hidden="true" />
           {app.status}
         </span>
-      </motion.div>
+      </div>
     </section>
   );
 }
@@ -200,7 +227,7 @@ export function OrbitStage() {
             <div className="o2-hero-art" aria-hidden="true">
               <div className="o2-hero-still">
                 {featuredApps.map((app, i) => (
-                  <StillPhone key={app.name} app={app} className={`o2-still-${i}`} />
+                  <StillPhone key={app.name} app={app} className={`o2-still-${i}`} eager />
                 ))}
               </div>
             </div>
@@ -244,7 +271,7 @@ export function OrbitStage() {
         </section>
 
         {featuredApps.map((app, i) => (
-          <AppPanel key={app.name} app={app} index={i} reduced={reduced} />
+          <AppPanel key={app.name} app={app} index={i} />
         ))}
       </div>
     </div>

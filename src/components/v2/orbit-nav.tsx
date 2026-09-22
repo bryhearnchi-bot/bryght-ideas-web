@@ -52,7 +52,7 @@ export function OrbitNav() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="o2-iconbtn lg:hidden"
+          className="o2-iconbtn o2-navtoggle lg:hidden"
           aria-label="Open menu"
           aria-expanded={open}
           aria-controls="o2-menu"
