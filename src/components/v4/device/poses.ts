@@ -4,7 +4,7 @@ import { PHONE_H } from "../phone-dims";
  * Pure pose maths for the showcase: showcase.t -> target transform and
  * effect amounts for each phone. No three.js objects, no side effects.
  *
- * Phone i: 0 = KGAY Travel, 1 = BetweenActs, 2 = Ahoy (also its ring index:
+ * Phone i: 0 = KGAY Travel, 1 = BetweenActs, 2 = MyCruiseCard (also its ring index:
  * app i is front and centre at t = 2 + i).
  */
 
@@ -109,9 +109,10 @@ const COPY_CLEAR = 40;
 
 /*
  * How far the whole cluster reaches from its centre, in units of the front
- * phone's height: every phone, the lifted UI layers at full lift, the Ahoy
- * blueprint's drafting marks, the idle float/sway (and, side by side, the
- * pointer parallax), sampled over every t by projecting the real poses.
+ * phone's height: every phone, the lifted UI layers at full lift, the idle
+ * float/sway (and, side by side, the pointer parallax), sampled over every t
+ * by projecting the real poses. (Sampled while phone 2 was a blueprint with
+ * drafting marks around it, so there is a little headroom to spare.)
  * Up / down for the stacked layout; left / right for side by side.
  */
 const REACH_UP = 0.645;

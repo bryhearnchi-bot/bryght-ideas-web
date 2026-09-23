@@ -1,12 +1,15 @@
 /**
  * Real UI elements that lift off each screen during the "exploded UI" beat.
  *
- * Rectangles are normalised to the 1320 x 2868 screenshots: x from the left,
- * y from the TOP, both 0..1. They were measured on the real images, so each
- * lifted layer is pixel-identical to the element beneath it. `radius` is in
- * source pixels (of the 1320px-wide image); `lift` is in phone-local units
- * (the phone is 2.8 tall, 0.15 deep). `parent` is the index of the layer the
- * element sits on (its shadow falls on that layer instead of the screen).
+ * Every screenshot is 921 x 2000. Each rectangle was measured on the real PNG
+ * (edge scans plus zoomed crops) and is written in source pixels through
+ * `px()`, which normalises it: x from the left, y from the TOP, both 0..1.
+ * So each lifted layer is pixel-identical to the element beneath it at rest.
+ * `radius` is in source pixels and matches the element's own corner; `lift`
+ * is in phone-local units (the phone is 2.8 tall, 0.15 deep). `parent` is the
+ * index of the layer the element sits on (it rides on that layer, and its
+ * cavity and shadow fall on it); a parent must come before its children.
+ * Layers lift in list order, a touch apart.
  */
 export type LayerSpec = {
   x0: number;
@@ -18,28 +21,56 @@ export type LayerSpec = {
   parent?: number;
 };
 
-const pill = (y0: number, y1: number) => ((y1 - y0) * 2868) / 2;
+/** Screenshot size in pixels (all three apps). */
+export const SHOT_W = 921;
+export const SHOT_H = 2000;
 
+/** A rectangle in source pixels (left, top, right, bottom) -> normalised spec fields. */
+const px = (l: number, t: number, r: number, b: number) => ({
+  x0: l / SHOT_W,
+  x1: r / SHOT_W,
+  y0: t / SHOT_H,
+  y1: b / SHOT_H,
+});
+
+/** Trip Guide: the countdown cascades down the hero, then the CTA and the tab bar. */
 export const KGAY_LAYERS: LayerSpec[] = [
-  // "Next Adventure" card (orange/purple gradient border)
-  { x0: 0.0456, x1: 0.9544, y0: 0.2432, y1: 0.699, radius: 66, lift: 0.26 },
-  // COUNTDOWN pill inside the card
-  { x0: 0.0755, x1: 0.3365, y0: 0.2578, y1: 0.2855, radius: pill(0.2578, 0.2855), lift: 0.5, parent: 0 },
-  // "Experiences of a Lifetime" title
-  { x0: 0.088, x1: 0.912, y0: 0.13, y1: 0.174, radius: 26, lift: 0.2 },
-  // Floating tab bar
-  { x0: 0.164, x1: 0.836, y0: 0.9245, y1: 0.9825, radius: pill(0.9245, 0.9825), lift: 0.34 },
+  // "COUNTDOWN" chip (cyan outline, square corners)
+  { ...px(25, 461, 258, 510), radius: 2, lift: 0.46 },
+  // "166 DAYS", with the photo behind it
+  { ...px(20, 522, 236, 604), radius: 12, lift: 0.32 },
+  // Green "ROOMS AVAILABLE" tag
+  { ...px(33, 1035, 362, 1085), radius: 2, lift: 0.38 },
+  // Orange "BOOK THIS TRIP WITH KGAY" button
+  { ...px(33, 1473, 888, 1552), radius: 3, lift: 0.28 },
+  // Floating glass tab bar
+  { ...px(43, 1826, 878, 1956), radius: 65, lift: 0.2 },
 ];
 
+/** Broadway: the hero poster jumps out of the carousel, the rest of the page follows. */
 export const BETWEENACTS_LAYERS: LayerSpec[] = [
-  // "Trending Now" Paddington card, including the WEST END / MUSICAL tags on its top edge
-  { x0: 0.0545, x1: 0.9445, y0: 0.2355, y1: 0.4888, radius: 14, lift: 0.24 },
-  // Paddington poster inside it
-  { x0: 0.0555, x1: 0.405, y0: 0.2476, y1: 0.4884, radius: 12, lift: 0.46, parent: 0 },
-  // "All Shows" red filter chip
-  { x0: 0.0525, x1: 0.2495, y0: 0.1372, y1: 0.1708, radius: 16, lift: 0.3 },
-  // Bottom tab bar
-  { x0: 0.037, x1: 0.963, y0: 0.8995, y1: 0.979, radius: pill(0.8995, 0.979), lift: 0.22 },
-  // Red "+" button
-  { x0: 0.4405, x1: 0.5595, y0: 0.9115, y1: 0.9665, radius: 79, lift: 0.44, parent: 3 },
+  // "NOW PLAYING IN NEW YORK / BROADWAY" heading block
+  { ...px(36, 270, 540, 386), radius: 14, lift: 0.24 },
+  // Centre poster, "The Outsiders" (highest)
+  { ...px(277, 443, 649, 975), radius: 3, lift: 0.52 },
+  // "Critics / Audience" toggle
+  { ...px(507, 1263, 875, 1330), radius: 34, lift: 0.3 },
+  // No. 1 poster, Hamilton
+  { ...px(148, 1371, 358, 1670), radius: 2, lift: 0.38 },
+  // Red "+" button (a circle)
+  { ...px(787, 1677, 883, 1774), radius: 49, lift: 0.44 },
+];
+
+/** Wallpaper editor: the card rises with its "Create" pill riding above it. */
+export const MYCRUISECARD_LAYERS: LayerSpec[] = [
+  // Rainbow wallpaper card
+  { ...px(164, 312, 756, 1597), radius: 22, lift: 0.22 },
+  // "Create Cruise Card" pill, overhanging the card's bottom edge (highest)
+  { ...px(257, 1543, 665, 1621), radius: 39, lift: 0.5, parent: 0 },
+  // Header: app icon + "MyCruiseCard" wordmark
+  { ...px(132, 157, 530, 240), radius: 18, lift: 0.2 },
+  // "Save to Phone" button
+  { ...px(33, 1732, 450, 1850), radius: 22, lift: 0.3 },
+  // "Share" button
+  { ...px(471, 1732, 888, 1850), radius: 22, lift: 0.36 },
 ];

@@ -6,8 +6,8 @@
 export const PHONE_H = 2.8;
 export const BEZEL = 0.07;
 export const SCREEN_H = PHONE_H - BEZEL * 2;
-// The screen has exactly the screenshots' aspect (1320 x 2868), so nothing is cropped.
-export const SCREEN_W = SCREEN_H * (1320 / 2868);
+// The screen has exactly the screenshots' aspect (921 x 2000), so nothing is cropped.
+export const SCREEN_W = SCREEN_H * (921 / 2000);
 export const PHONE_W = SCREEN_W + BEZEL * 2;
 export const DEPTH = 0.15;
 export const CORNER = 0.2;

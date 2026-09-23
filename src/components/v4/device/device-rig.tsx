@@ -21,17 +21,43 @@ import { Environment, Lightformer } from "@react-three/drei";
 import { PHONE_COUNT, showcase } from "../showcase-store";
 import { createPhoneKit } from "./geometry";
 import { computeLayout, computeTargets, newTarget, smooth, snapStage, type Target } from "./poses";
-import { BlueprintPhone, SolidPhone, type Finish, type PhoneState } from "./phones";
-import { createSpillTexture, AHOY_LAYERS } from "./textures";
-import { BETWEENACTS_LAYERS, KGAY_LAYERS } from "./ui-layers";
+import { SolidPhone, type Finish, type PhoneState } from "./phones";
+import { createSpillTexture } from "./textures";
+import { BETWEENACTS_LAYERS, KGAY_LAYERS, MYCRUISECARD_LAYERS, type LayerSpec } from "./ui-layers";
 
 const PAGE_BG = "#0A0D14";
 
-// The source PNGs are multi-megabyte: load them through the Next image optimiser.
+// Load the PNGs through the Next image optimiser. The sources are 921px wide
+// and it never upscales, so ask for the largest allowed width below that
+// (828, one of Next's default deviceSizes); 640 on mobile.
 const optimised = (src: string, w: number) => `/_next/image?url=${encodeURIComponent(src)}&w=${w}&q=75`;
 
-const FINISH_KGAY: Finish = { frame: "#3b3c40", back: "#1b1c1f", roughness: 0.3 };
-const FINISH_BA: Finish = { frame: "#c9c5bd", back: "#bdb9b1", roughness: 0.26 };
+type PhoneSpec = { src: string; finish: Finish; layers: LayerSpec[]; spill: string };
+
+/** Phone i shows app i (see poses.ts). Each finish suits its app's palette. */
+const PHONES: PhoneSpec[] = [
+  // KGAY Travel: black titanium, warm orange spill.
+  {
+    src: "/kgay-app-screenshot.png",
+    finish: { frame: "#3b3c40", back: "#1b1c1f", roughness: 0.3 },
+    layers: KGAY_LAYERS,
+    spill: "#E86A2C",
+  },
+  // BetweenActs: natural titanium, marquee-red spill.
+  {
+    src: "/betweenacts-app-screenshot.png",
+    finish: { frame: "#c9c5bd", back: "#bdb9b1", roughness: 0.26 },
+    layers: BETWEENACTS_LAYERS,
+    spill: "#C4142E",
+  },
+  // MyCruiseCard: deep navy blue titanium for its navy + gold UI, violet-blue spill.
+  {
+    src: "/mycruisecard-app-screenshot.png",
+    finish: { frame: "#43598c", back: "#1f2a4a", roughness: 0.28 },
+    layers: MYCRUISECARD_LAYERS,
+    spill: "#7468F0",
+  },
+];
 
 const ORIGIN = new THREE.Vector3(0, 0, 0);
 
@@ -203,46 +229,31 @@ export default function DeviceRig({ mobile, reduced }: { mobile: boolean; reduce
     if (present && !mounted) setMounted(true);
   }, -1);
 
-  const screenW = mobile ? 750 : 1080;
+  const screenW = mobile ? 640 : 828;
   return (
     <>
-      {showcase.anchors.map((anchor, i) => (
-        <primitive key={i} object={anchor}>
-          {mounted && i === 0 ? (
-            <FailSoft>
-              <Suspense fallback={null}>
-                <SolidPhone
-                  kit={kit}
-                  state={states[0]}
-                  url={optimised("/kgay-app-screenshot.png", screenW)}
-                  finish={FINISH_KGAY}
-                  layers={KGAY_LAYERS}
-                  spillMap={spillMap}
-                  spillColor="#E86A2C"
-                />
-              </Suspense>
-            </FailSoft>
-          ) : null}
-          {mounted && i === 1 ? (
-            <FailSoft>
-              <Suspense fallback={null}>
-                <SolidPhone
-                  kit={kit}
-                  state={states[1]}
-                  url={optimised("/betweenacts-app-screenshot.png", screenW)}
-                  finish={FINISH_BA}
-                  layers={BETWEENACTS_LAYERS}
-                  spillMap={spillMap}
-                  spillColor="#C4142E"
-                />
-              </Suspense>
-            </FailSoft>
-          ) : null}
-          {mounted && i === 2 ? (
-            <BlueprintPhone kit={kit} state={states[2]} layers={AHOY_LAYERS} spillMap={spillMap} />
-          ) : null}
-        </primitive>
-      ))}
+      {showcase.anchors.map((anchor, i) => {
+        const phone = PHONES[i];
+        return (
+          <primitive key={i} object={anchor}>
+            {mounted && phone ? (
+              <FailSoft>
+                <Suspense fallback={null}>
+                  <SolidPhone
+                    kit={kit}
+                    state={states[i]}
+                    url={optimised(phone.src, screenW)}
+                    finish={phone.finish}
+                    layers={phone.layers}
+                    spillMap={spillMap}
+                    spillColor={phone.spill}
+                  />
+                </Suspense>
+              </FailSoft>
+            ) : null}
+          </primitive>
+        );
+      })}
       {mounted ? (
         <Suspense fallback={null}>
           <Lighting />

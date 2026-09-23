@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import { CORNER, DEPTH, PHONE_H, PHONE_W, SCREEN_CORNER, SCREEN_H, SCREEN_W } from "../phone-dims";
-import type { LayerSpec } from "./ui-layers";
+import { SHOT_W, type LayerSpec } from "./ui-layers";
 
 /** Radius of the rounded frame edge (the bevel of the extruded body). */
 export const EDGE = 0.034;
@@ -13,8 +13,8 @@ export const SCREEN_Z = FRONT + 0.003;
 /** Dynamic island, sized and placed like an iPhone 15 Pro's (centre y). */
 export const ISLAND = { w: 0.358, h: 0.104, y: SCREEN_H / 2 - 0.084 };
 
-/** Screenshot pixels (1320 wide) -> phone units. */
-export const PX = SCREEN_W / 1320;
+/** Screenshot pixels (921 wide) -> phone units. */
+export const PX = SCREEN_W / SHOT_W;
 
 export function roundedRectShape(w: number, h: number, r: number, cx = 0, cy = 0) {
   const rr = Math.min(r, w / 2, h / 2);
@@ -66,6 +66,26 @@ export function layerGeometry(l: LayerSpec, segments: number) {
   const { w, h, r } = layerRect(l);
   // Texture v runs bottom-up; the specs are measured top-down.
   return roundedPlane(w, h, r, segments, [l.x0, l.x1, 1 - l.y1, 1 - l.y0]);
+}
+
+/**
+ * The part of a child layer's footprint that lies on its parent layer, in the
+ * child's local space: the cavity it leaves in the parent when it lifts. A
+ * child can overhang its parent (MyCruiseCard's pill hangs off the card), and
+ * that overhang must not leave a floating patch in mid-air. Clamping the
+ * child's convex outline to the parent's bounds gives exactly the overlap.
+ */
+export function clippedLayerGeometry(child: LayerSpec, parent: LayerSpec) {
+  const c = layerRect(child);
+  const p = layerRect(parent);
+  const xMin = p.x - p.w / 2 - c.x;
+  const xMax = p.x + p.w / 2 - c.x;
+  const yMin = p.y - p.h / 2 - c.y;
+  const yMax = p.y + p.h / 2 - c.y;
+  const pts = roundedRectShape(c.w, c.h, c.r)
+    .getSpacedPoints(128)
+    .map((v) => new THREE.Vector2(THREE.MathUtils.clamp(v.x, xMin, xMax), THREE.MathUtils.clamp(v.y, yMin, yMax)));
+  return new THREE.ShapeGeometry(new THREE.Shape(pts));
 }
 
 function bodyGeometry(detail: number) {
@@ -124,191 +144,4 @@ export function createPhoneKit(detail: number): PhoneKit {
       });
     },
   };
-}
-
-/* ------------------------------------------------------------------ */
-/* Blueprint wireframe                                                  */
-/* ------------------------------------------------------------------ */
-
-type Seg = { a: THREE.Vector3; b: THREE.Vector3; d0: number; d1: number; c: number };
-
-function pushPolyline(out: Seg[], pts: THREE.Vector3[], closed: boolean, delay: number, span: number, c: number) {
-  const n = closed ? pts.length : pts.length - 1;
-  let total = 0;
-  const lens: number[] = [];
-  for (let i = 0; i < n; i++) {
-    const l = pts[i].distanceTo(pts[(i + 1) % pts.length]);
-    lens.push(l);
-    total += l;
-  }
-  let acc = 0;
-  for (let i = 0; i < n; i++) {
-    const d0 = delay + (acc / total) * span;
-    acc += lens[i];
-    const d1 = delay + (acc / total) * span;
-    out.push({ a: pts[i], b: pts[(i + 1) % pts.length], d0, d1, c });
-  }
-}
-
-function loop(w: number, h: number, r: number, z: number, divisions: number, startAtTop = true) {
-  const pts = roundedRectShape(w, h, r)
-    .getSpacedPoints(divisions)
-    .slice(0, -1)
-    .map((p) => new THREE.Vector3(p.x, p.y, z));
-  if (!startAtTop) return pts;
-  // Start drawing from the top centre so every contour traces from the same place.
-  let best = 0;
-  pts.forEach((p, i) => {
-    if (p.y > pts[best].y - 1e-4 && Math.abs(p.x) < Math.abs(pts[best].x)) best = i;
-  });
-  return [...pts.slice(best), ...pts.slice(0, best)];
-}
-
-/** Outline of a box on one side of the phone (a button), in the y/z plane. */
-function sideRect(x: number, y: number, len: number, depth: number) {
-  return [
-    new THREE.Vector3(x, y - len / 2, -depth / 2),
-    new THREE.Vector3(x, y + len / 2, -depth / 2),
-    new THREE.Vector3(x, y + len / 2, depth / 2),
-    new THREE.Vector3(x, y - len / 2, depth / 2),
-  ];
-}
-
-/**
- * Line segments for the blueprint phone. Each segment carries a "draw"
- * distance so the edges trace themselves in (dashSize animates 0 -> DRAW_END),
- * and a brightness (0..1) so construction lines sit quieter than the body.
- */
-export const DRAW_END = 1.25;
-
-export function blueprintSegments(detail: number) {
-  const segs: Seg[] = [];
-  const div = 48 + detail * 24;
-  const bright = 1;
-  const mid = 0.55;
-  const faint = 0.28;
-
-  // Body contours: widest silhouette, front and back caps.
-  pushPolyline(segs, loop(PHONE_W, PHONE_H, CORNER, 0, div), true, 0, 0.62, bright);
-  pushPolyline(segs, loop(PHONE_W - EDGE * 2, PHONE_H - EDGE * 2, CORNER - EDGE, FRONT, div), true, 0.08, 0.62, bright);
-  pushPolyline(segs, loop(PHONE_W - EDGE * 2, PHONE_H - EDGE * 2, CORNER - EDGE, -FRONT, div), true, 0.12, 0.62, mid);
-  // Screen and island.
-  pushPolyline(segs, loop(SCREEN_W, SCREEN_H, SCREEN_CORNER, SCREEN_Z + 0.001, div), true, 0.22, 0.6, mid);
-  pushPolyline(
-    segs,
-    loop(ISLAND.w, ISLAND.h, ISLAND.h / 2, SCREEN_Z + 0.002, 24).map((p) => p.add(new THREE.Vector3(0, ISLAND.y, 0))),
-    true,
-    0.6,
-    0.25,
-    bright,
-  );
-
-  // Edge rails joining front and back at the corners and mid-sides.
-  const rail = (x: number, y: number) =>
-    pushPolyline(segs, [new THREE.Vector3(x, y, -FRONT), new THREE.Vector3(x, y, FRONT)], false, 0.66, 0.12, mid);
-  const k = (CORNER - EDGE) * (1 - Math.SQRT1_2);
-  const hw = PHONE_W / 2 - EDGE;
-  const hh = PHONE_H / 2 - EDGE;
-  rail(-hw + k, -hh + k);
-  rail(hw - k, -hh + k);
-  rail(-hw + k, hh - k);
-  rail(hw - k, hh - k);
-
-  // Buttons (left: action, volume up/down; right: side button).
-  const sx = PHONE_W / 2 + 0.012;
-  pushPolyline(segs, sideRect(-sx, 0.86, 0.1, 0.062), true, 0.72, 0.12, mid);
-  pushPolyline(segs, sideRect(-sx, 0.6, 0.21, 0.062), true, 0.74, 0.12, mid);
-  pushPolyline(segs, sideRect(-sx, 0.32, 0.21, 0.062), true, 0.76, 0.12, mid);
-  pushPolyline(segs, sideRect(sx, 0.48, 0.36, 0.062), true, 0.74, 0.12, mid);
-
-  // Camera bump + lenses on the back.
-  const bx = PHONE_W / 2 - 0.4;
-  const by = PHONE_H / 2 - 0.4;
-  pushPolyline(
-    segs,
-    loop(0.64, 0.64, 0.1, -FRONT - 0.03, 32).map((p) => p.add(new THREE.Vector3(bx, by, 0))),
-    true,
-    0.78,
-    0.2,
-    mid,
-  );
-  [
-    [-0.14, 0.14],
-    [-0.14, -0.14],
-    [0.14, 0],
-  ].forEach(([lx, ly], i) => {
-    const pts: THREE.Vector3[] = [];
-    for (let a = 0; a < 20; a++) {
-      const th = (a / 20) * Math.PI * 2;
-      pts.push(new THREE.Vector3(bx + lx + Math.cos(th) * 0.1, by + ly + Math.sin(th) * 0.1, -FRONT - 0.055));
-    }
-    pushPolyline(segs, pts, true, 0.82 + i * 0.03, 0.14, mid);
-  });
-
-  // Construction lines: centre axes overshooting the silhouette, end ticks,
-  // and corner registration marks — the drafting scaffold.
-  const ox = PHONE_W / 2 + 0.22;
-  const oy = PHONE_H / 2 + 0.22;
-  const dash = (a: THREE.Vector3, b: THREE.Vector3, n: number, delay: number) => {
-    for (let i = 0; i < n; i++) {
-      const p0 = a.clone().lerp(b, i / n);
-      const p1 = a.clone().lerp(b, (i + 0.55) / n);
-      pushPolyline(segs, [p0, p1], false, delay + (i / n) * 0.35, 0.35 / n, faint);
-    }
-  };
-  dash(new THREE.Vector3(0, oy, 0), new THREE.Vector3(0, -oy, 0), 22, 0.02);
-  dash(new THREE.Vector3(-ox, 0, 0), new THREE.Vector3(ox, 0, 0), 10, 0.06);
-  const tick = 0.07;
-  for (const [x, y] of [
-    [0, oy],
-    [0, -oy],
-    [ox, 0],
-    [-ox, 0],
-  ]) {
-    const horiz = x === 0;
-    pushPolyline(
-      segs,
-      [
-        new THREE.Vector3(x - (horiz ? tick : 0), y - (horiz ? 0 : tick), 0),
-        new THREE.Vector3(x + (horiz ? tick : 0), y + (horiz ? 0 : tick), 0),
-      ],
-      false,
-      0.4,
-      0.05,
-      mid,
-    );
-  }
-  const cm = 0.09;
-  for (const sxn of [-1, 1]) {
-    for (const syn of [-1, 1]) {
-      const cx = sxn * (PHONE_W / 2 + 0.1);
-      const cy = syn * (PHONE_H / 2 + 0.1);
-      pushPolyline(
-        segs,
-        [new THREE.Vector3(cx - cm, cy, 0), new THREE.Vector3(cx + cm, cy, 0)],
-        false,
-        0.45,
-        0.06,
-        faint,
-      );
-      pushPolyline(
-        segs,
-        [new THREE.Vector3(cx, cy - cm, 0), new THREE.Vector3(cx, cy + cm, 0)],
-        false,
-        0.45,
-        0.06,
-        faint,
-      );
-    }
-  }
-
-  const positions = new Float32Array(segs.length * 6);
-  const colors = new Float32Array(segs.length * 6);
-  const dist = new Float32Array(segs.length * 2);
-  segs.forEach((s, i) => {
-    positions.set([s.a.x, s.a.y, s.a.z, s.b.x, s.b.y, s.b.z], i * 6);
-    colors.set([s.c, s.c, s.c, s.c, s.c, s.c], i * 6);
-    dist.set([s.d0, s.d1], i * 2);
-  });
-  return { positions, colors, dist };
 }

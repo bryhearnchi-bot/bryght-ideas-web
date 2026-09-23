@@ -4,23 +4,19 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
-import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
-import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
-import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { PHONE_H, PHONE_W } from "../phone-dims";
 import {
-  DRAW_END,
   FRONT,
   ISLAND,
   SCREEN_Z,
-  blueprintSegments,
+  clippedLayerGeometry,
   layerGeometry,
   layerRect,
   roundedRectShape,
   type PhoneKit,
 } from "./geometry";
-import { createBlueprintFillMaterial, createScreenMaterial } from "./materials";
-import { createBlueprintTexture, createLayerShadowTexture, SHADOW_PAD } from "./textures";
+import { createScreenMaterial } from "./materials";
+import { createLayerShadowTexture, SHADOW_PAD } from "./textures";
 import { smooth } from "./poses";
 import type { LayerSpec } from "./ui-layers";
 
@@ -52,7 +48,10 @@ type LayerParts = {
     layer: THREE.Mesh;
     shadow: THREE.Mesh;
     shadowMat: THREE.MeshBasicMaterial;
+    /** Cavity on whatever the element sits on (the screen, or its parent layer). */
     socket: THREE.Mesh;
+    /** A child's cavity in the screen itself, under its parent's cavity and any overhang. */
+    screenSocket: THREE.Mesh | null;
   }[];
   socketMat: THREE.MeshBasicMaterial;
 };
@@ -81,6 +80,10 @@ function applyLayers(g: THREE.Group, parts: LayerParts, state: PhoneState) {
     const k = ej * (it.spec.lift / 0.3);
     it.socket.position.set(it.rect.x, it.rect.y, baseZ + 0.0006);
     it.socket.visible = ej > 0.01;
+    if (it.screenSocket) {
+      it.screenSocket.position.set(it.rect.x, it.rect.y, SCREEN_Z + 0.0006);
+      it.screenSocket.visible = ej > 0.01;
+    }
     it.shadow.position.set(it.rect.x + 0.018 * k, it.rect.y - 0.034 * k, baseZ + 0.0009);
     const grow = 1 + 0.08 * ej;
     it.shadow.scale.set(grow, grow, 1);
@@ -120,6 +123,10 @@ function ExplodedLayers({
     const items = specs.map((spec) => {
       const rect = layerRect(spec);
       const geo = layerGeometry(spec, segments);
+      // A child's cavity on its parent covers only the overlap; the screen
+      // gets a full-size cavity of its own for the part that overhangs.
+      const parent = spec.parent !== undefined ? specs[spec.parent] : undefined;
+      const socketGeo = parent ? clippedLayerGeometry(spec, parent) : geo;
       const shadowTex = createLayerShadowTexture(spec);
       const shadowMat = new THREE.MeshBasicMaterial({
         map: shadowTex,
@@ -135,14 +142,16 @@ function ExplodedLayers({
       );
       const layer = new THREE.Mesh(geo, material);
       const shadow = new THREE.Mesh(shadowGeo, shadowMat);
-      const socket = new THREE.Mesh(geo, socketMat);
+      const socket = new THREE.Mesh(socketGeo, socketMat);
       socket.renderOrder = 2;
+      const screenSocket = parent ? new THREE.Mesh(geo, socketMat) : null;
+      if (screenSocket) screenSocket.renderOrder = 2;
       const rim = new THREE.Line(rimGeo, rimMaterial);
       layer.renderOrder = 4;
       shadow.renderOrder = 3;
       rim.renderOrder = 5;
       layer.add(rim);
-      return { spec, rect, layer, shadow, socket, shadowMat, shadowTex, geo, shadowGeo, rimGeo };
+      return { spec, rect, layer, shadow, socket, screenSocket, shadowMat, shadowTex, geo, socketGeo, shadowGeo, rimGeo };
     });
     return { material, rimMaterial, socketMat, items };
   }, [specs, map, segments]);
@@ -154,6 +163,7 @@ function ExplodedLayers({
       parts.socketMat.dispose();
       parts.items.forEach((it) => {
         it.geo.dispose();
+        it.socketGeo.dispose();
         it.shadowGeo.dispose();
         it.rimGeo.dispose();
         it.shadowMat.dispose();
@@ -173,6 +183,7 @@ function ExplodedLayers({
         <group key={j}>
           <primitive object={it.layer} />
           <primitive object={it.socket} />
+          {it.screenSocket ? <primitive object={it.screenSocket} /> : null}
           <primitive object={it.shadow} />
         </group>
       ))}
@@ -380,124 +391,6 @@ export function SolidPhone({
       ))}
 
       <Spill geometry={kit.spill} map={spillMap} color={spillColor} state={state} strength={0.5} />
-      <ExplodedLayers specs={layers} map={tex} state={state} segments={kit.detail * 4} />
-    </group>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Blueprint phone (Ahoy, in development)                               */
-/* ------------------------------------------------------------------ */
-
-type BlueprintParts = {
-  coreMat: LineMaterial;
-  glowMat: LineMaterial;
-  core: LineSegments2;
-  glow: LineSegments2;
-  fill: THREE.ShaderMaterial;
-  screen: THREE.ShaderMaterial;
-  island: THREE.MeshBasicMaterial;
-};
-
-function applyBlueprint(g: THREE.Group, parts: BlueprintParts, state: PhoneState, time: number) {
-  g.visible = state.visible;
-  if (!state.visible) return;
-  const r = state.reveal;
-  // Edges trace themselves in first, then the fill and screen come up.
-  const draw = smooth(r / 0.7) * DRAW_END;
-  parts.coreMat.dashSize = draw;
-  parts.glowMat.dashSize = draw;
-  parts.coreMat.opacity = state.fade;
-  parts.glowMat.opacity = 0.22 * state.fade;
-  parts.core.visible = parts.glow.visible = draw > 0.001;
-  parts.fill.uniforms.uOpacity.value = 0.92 * smooth((r - 0.3) / 0.5) * state.fade;
-  parts.island.opacity = smooth((r - 0.3) / 0.5) * state.fade;
-  const u = parts.screen.uniforms;
-  u.uReveal.value = smooth((r - 0.42) / 0.58);
-  u.uOpacity.value = Math.min(state.fade, smooth((r - 0.25) / 0.4));
-  u.uTime.value = time;
-}
-
-export function BlueprintPhone({
-  kit,
-  state,
-  layers,
-  spillMap,
-}: {
-  kit: PhoneKit;
-  state: PhoneState;
-  layers: LayerSpec[];
-  spillMap: THREE.Texture;
-}) {
-  const invalidate = useThree((s) => s.invalidate);
-  const group = useRef<THREE.Group>(null);
-  const tex = useMemo(() => createBlueprintTexture(() => invalidate()), [invalidate]);
-
-  const parts = useMemo(() => {
-    const { positions, colors, dist } = blueprintSegments(kit.detail);
-    const geo = new LineSegmentsGeometry();
-    geo.setPositions(positions);
-    geo.setColors(colors);
-    const buf = new THREE.InstancedInterleavedBuffer(dist, 2, 1);
-    geo.setAttribute("instanceDistanceStart", new THREE.InterleavedBufferAttribute(buf, 1, 0));
-    geo.setAttribute("instanceDistanceEnd", new THREE.InterleavedBufferAttribute(buf, 1, 1));
-
-    const makeMat = (color: string, width: number) => {
-      const m = new LineMaterial({
-        color,
-        linewidth: width,
-        vertexColors: true,
-        dashed: true,
-        dashSize: 0,
-        gapSize: 100,
-        transparent: true,
-        depthWrite: false,
-        blending: THREE.AdditiveBlending,
-        toneMapped: false,
-      });
-      m.fog = true;
-      return m;
-    };
-    const coreMat = makeMat("#8fcaff", 1.6);
-    const glowMat = makeMat("#1e90f0", 6);
-    const core = new LineSegments2(geo, coreMat);
-    const glow = new LineSegments2(geo, glowMat);
-    core.renderOrder = 3;
-    glow.renderOrder = 2;
-    core.frustumCulled = false;
-    glow.frustumCulled = false;
-
-    const fill = createBlueprintFillMaterial();
-    const screen = createScreenMaterial(tex);
-    const island = new THREE.MeshBasicMaterial({ color: "#01040a", alphaHash: true });
-    return { geo, coreMat, glowMat, core, glow, fill, screen, island };
-  }, [kit.detail, tex]);
-
-  useEffect(
-    () => () => {
-      parts.geo.dispose();
-      parts.coreMat.dispose();
-      parts.glowMat.dispose();
-      parts.fill.dispose();
-      parts.screen.dispose();
-      parts.island.dispose();
-    },
-    [parts],
-  );
-  useEffect(() => () => tex.dispose(), [tex]);
-
-  useFrame((st) => {
-    if (group.current) applyBlueprint(group.current, parts, state, st.clock.elapsedTime);
-  });
-
-  return (
-    <group ref={group} visible={false}>
-      <mesh geometry={kit.body} material={parts.fill} renderOrder={1} />
-      <mesh geometry={kit.screen} material={parts.screen} position-z={SCREEN_Z} />
-      <mesh geometry={kit.island} material={parts.island} position={[0, ISLAND.y, SCREEN_Z + 0.0015]} />
-      <primitive object={parts.glow} />
-      <primitive object={parts.core} />
-      <Spill geometry={kit.spill} map={spillMap} color="#1E90F0" state={state} strength={0.55} />
       <ExplodedLayers specs={layers} map={tex} state={state} segments={kit.detail * 4} />
     </group>
   );

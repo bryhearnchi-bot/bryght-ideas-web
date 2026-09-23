@@ -324,9 +324,9 @@ function StaticWork() {
             return (
               <article key={app.name} className="so-glass flex flex-col rounded-[28px] p-5 md:p-6">
                 <div className="mx-auto w-[60%] max-w-[220px]">
-                  <div className={shot ? "so-device" : "so-device so-device-blueprint"}>
-                    {shot ? (
-                      <div className="so-device-screen">
+                  <div className="so-device">
+                    <div className="so-device-screen">
+                      {shot ? (
                         <Image
                           src={shot}
                           alt={`${app.name} app screenshot`}
@@ -334,13 +334,8 @@ function StaticWork() {
                           sizes="(max-width: 768px) 60vw, 220px"
                           className="object-cover object-top"
                         />
-                      </div>
-                    ) : (
-                      <div className="so-device-empty">
-                        <span className="so-display text-[22px] text-[#8cc4ff]">{app.name}</span>
-                        <span className="label text-[11px] text-yellow">{app.status}</span>
-                      </div>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 <p className="label m-0 mt-7 text-blue-block">

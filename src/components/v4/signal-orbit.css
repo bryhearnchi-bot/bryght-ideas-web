@@ -185,7 +185,7 @@
 /* Screens in the Work section. */
 .so-device {
   position: relative;
-  aspect-ratio: 1320 / 2868;
+  aspect-ratio: 921 / 2000;
   border-radius: 34px;
   padding: 6px;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
@@ -201,22 +201,6 @@
   overflow: hidden;
   border-radius: 28px;
   background: #05070b;
-}
-
-.so-device-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  height: 100%;
-  border-radius: 28px;
-  border: 1px dashed rgba(30, 144, 240, 0.45);
-  background:
-    radial-gradient(circle at 50% 40%, rgba(30, 144, 240, 0.18), transparent 60%),
-    #070a11;
-  text-align: center;
-  padding: 16px;
 }
 
 .so-scroll-row {
@@ -633,20 +617,6 @@
   .so-panel-pill {
     margin-top: 14px;
   }
-}
-
-/* Fallback cards (no WebGL): Ahoy is drawn as a blueprint. */
-.so-device-blueprint {
-  background:
-    linear-gradient(rgba(30, 144, 240, 0.16) 1px, transparent 1px) 0 0 / 14px 14px,
-    linear-gradient(90deg, rgba(30, 144, 240, 0.16) 1px, transparent 1px) 0 0 / 14px 14px,
-    #07101f;
-  box-shadow:
-    0 0 0 1px rgba(30, 144, 240, 0.7) inset,
-    0 0 40px -8px rgba(30, 144, 240, 0.5);
-}
-.so-device-blueprint .so-device-empty {
-  background: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
