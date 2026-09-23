@@ -7,7 +7,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { siteConfig } from "@/config/site";
 
-export function SignalNav({ scrolled }: { scrolled: boolean }) {
+export function OrbitNav({ scrolled }: { scrolled: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
             className="-mr-2 p-2 text-[#eef3fb] lg:hidden"
             aria-label="Open menu"
             aria-expanded={open}
-            aria-controls="sg-mobile-menu"
+            aria-controls="so-mobile-menu"
           >
             <Menu size={24} />
           </button>
@@ -70,7 +70,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
       <AnimatePresence>
         {open ? (
           <motion.div
-            id="sg-mobile-menu"
+            id="so-mobile-menu"
             role="dialog"
             aria-modal="true"
             aria-label="Menu"
@@ -104,7 +104,7 @@ export function SignalNav({ scrolled }: { scrolled: boolean }) {
                   <a
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className="sg-display block py-2 text-[44px] text-[#eef3fb]"
+                    className="so-display block py-2 text-[44px] text-[#eef3fb]"
                   >
                     {link.label}
                   </a>
@@ -135,7 +135,7 @@ const versions = [
 
 export function VersionSwitcher({ current }: { current: string }) {
   return (
-    <nav aria-label="Design versions" className="sg-switcher">
+    <nav aria-label="Design versions" className="so-switcher">
       {versions.map((v) => (
         <Link
           key={v.href}

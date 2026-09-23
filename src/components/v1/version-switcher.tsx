@@ -5,6 +5,7 @@ const VERSIONS = [
   { label: "3D·1", href: "/v1" },
   { label: "3D·2", href: "/v2" },
   { label: "3D·3", href: "/v3" },
+  { label: "3D·4", href: "/v4" },
 ];
 
 export function VersionSwitcher({ current }: { current: string }) {
