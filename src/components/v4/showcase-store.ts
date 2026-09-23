@@ -21,7 +21,7 @@ export const STAGE = {
   OUTLINE: 0,
   /** Phones fully materialised in the fan. */
   FAN: 1,
-  /** App i is front and centre (2 = KGAY Travel, 3 = BetweenActs, 4 = Ahoy). */
+  /** App i is front and centre (2 = KGAY Travel, 3 = BetweenActs, 4 = MyCruiseCard). */
   APP0: 2,
   APP1: 3,
   APP2: 4,
@@ -40,7 +40,7 @@ export const showcase = {
   presence: 0,
   /**
    * Phone-local -> world transforms for the three phones (KGAY, BetweenActs,
-   * Ahoy), in the units of phone-dims.ts. Written every frame by the rig in a
+   * MyCruiseCard), in the units of phone-dims.ts. Written every frame by the rig in a
    * useFrame with priority -1 (runs before the particle field), whether or
    * not the phone meshes have loaded. matrixWorld is up to date after the rig
    * runs.
