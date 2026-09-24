@@ -1,0 +1,757 @@
+/**
+ * Procedural particle targets for the Signal Orbit field.
+ *
+ * Every shape is a Float32Array of `n * 3` positions. Particle `i` in one
+ * shape morphs into particle `i` in the next, so all shapes share the same
+ * count. The first `sparkCount` indices are the yellow "sparks": in the
+ * lightbulb they become the filament, elsewhere they mark highlights
+ * (camera, city lights, synapses, the orbit ring, and the phones' island,
+ * corners and buttons).
+ *
+ * Shapes: 0 bulb · 1 phone · 2 globe · 3 network · 4 ring · 5 phone trio ·
+ * 6 wave · 7 founder portrait.
+ * Shape 5 is in PHONE-LOCAL units (phone-dims.ts): particle i belongs to
+ * phone i % 3 and is placed in the world by that phone's anchor matrix.
+ * Shape 7 is in CARD-LOCAL units (card 1 wide, CARD_H tall, centred) and is
+ * placed by the founder card's anchor matrix. Its particles carry a role and
+ * a halftone tone in aTone (see TONE).
+ */
+import {
+  CORNER,
+  DEPTH,
+  PHONE_H,
+  PHONE_W,
+  SCREEN_CORNER,
+  SCREEN_H,
+  SCREEN_W,
+} from "./phone-dims";
+
+export const SHAPE_COUNT = 8;
+/** Index of the phone-trio shape (placed by the anchors, not the group). */
+export const PHONE_TRIO = 5;
+/** Index of the founder portrait (placed by the card anchor, not the group). */
+export const PORTRAIT = 7;
+
+/** Founder card in card-local units: 1 wide, 4:5, centred on the origin. */
+export const CARD_W = 1;
+export const CARD_H = 1.25;
+/** Corner radius of the card (28px on a 440px card). */
+export const CARD_R = 0.064;
+
+/**
+ * aTone encodes a particle's role in the portrait (shape 7):
+ *   0..1  halftone grid dot, value = brightness of the photo under it
+ *   BORDER  the card's rounded-rect outline (the aura that stays)
+ *   CORNER  a yellow spark on one of the card's corners
+ *   HIDDEN  not drawn while the portrait holds (spare particles)
+ */
+export const TONE = { BORDER: 2, CORNER: 3, HIDDEN: -1, MID: 0.5 } as const;
+
+/** Halftone columns across the founder card (rows follow the 4:5 card). */
+export const portraitCols = (mobile: boolean) => (mobile ? 60 : 110);
+
+/**
+ * Role of a particle inside the phone trio, used by the shader:
+ * 0 silhouette (the aura that stays around a solid phone),
+ * 1 inner detail (screen edge, screen fill, island; hidden once the body is solid),
+ * 2 outer detail (side buttons),
+ * 3 spark (island, screen-corner and body-corner glints, buttons).
+ */
+export const KIND = { SILHOUETTE: 0, INNER: 1, OUTER: 2, SPARK: 3 } as const;
+
+export type SignalShapes = {
+  count: number;
+  shapes: Float32Array[];
+  dir: Float32Array;
+  seed: Float32Array;
+  spark: Float32Array;
+  /** Which phone (0, 1, 2) a particle belongs to in shape 5. */
+  phone: Float32Array;
+  /** KIND of the particle in shape 5. */
+  kind: Float32Array;
+  /** Role / halftone tone of the particle in shape 7 (see TONE). */
+  tone: Float32Array;
+  /** Halftone grid of the portrait: cell (c, r) -> particle index (or -1). */
+  grid: { cols: number; rows: number; index: Int32Array };
+};
+
+type Rng = () => number;
+
+function mulberry32(a: number): Rng {
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function gauss(rng: Rng) {
+  // Box-Muller, one value.
+  const u = Math.max(1e-6, rng());
+  const v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function set(out: Float32Array, i: number, x: number, y: number, z: number) {
+  out[i * 3] = x;
+  out[i * 3 + 1] = y;
+  out[i * 3 + 2] = z;
+}
+
+/* ---------------------------------------------------------------- bulb */
+
+function bulbRadius(y: number) {
+  if (y >= -0.05) return Math.sqrt(Math.max(0, 1 - (y - 0.6) ** 2));
+  if (y >= -0.7) {
+    const t = (y + 0.7) / 0.65;
+    const s = t * t * (3 - 2 * t);
+    return 0.46 + 0.3 * s;
+  }
+  if (y >= -1.25) return 0.44 + 0.035 * Math.abs(Math.sin(y * 26));
+  const t = (y + 1.45) / 0.2;
+  return 0.12 + 0.3 * t;
+}
+
+function bulb(n: number, sparks: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const yShift = -0.08;
+
+  for (let i = 0; i < n; i++) {
+    if (i < sparks) {
+      // Filament: a coil across the middle, fed by two support wires.
+      const u = rng();
+      if (u < 0.62) {
+        const k = rng();
+        const x = -0.22 + 0.44 * k;
+        const y = 0.42 + 0.07 * Math.sin(k * Math.PI * 12);
+        const z = 0.07 * Math.cos(k * Math.PI * 12);
+        set(out, i, x, y + yShift, z);
+      } else {
+        const side = rng() < 0.5 ? -1 : 1;
+        const k = rng();
+        const y = -0.62 + k * 1.02;
+        const x = side * (0.1 + 0.12 * k);
+        set(out, i, x, y + yShift, 0);
+      }
+      continue;
+    }
+
+    // Surface of revolution, area-weighted by radius (rejection).
+    let y = 0;
+    let r = 0;
+    for (let tries = 0; tries < 12; tries++) {
+      y = -1.45 + rng() * 3.05;
+      r = bulbRadius(y);
+      if (rng() < r) break;
+    }
+    const theta = rng() * Math.PI * 2;
+    const rr = r * (1 - rng() * 0.035);
+    set(out, i, rr * Math.cos(theta), y + yShift, rr * Math.sin(theta));
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------- phone */
+
+type Rect = [x0: number, y0: number, x1: number, y1: number];
+
+function roundedRectPoint(
+  w: number,
+  h: number,
+  r: number,
+  t: number,
+): [number, number] {
+  // Walk the perimeter of a rounded rectangle, t in [0, 1).
+  const straightW = w - 2 * r;
+  const straightH = h - 2 * r;
+  const arc = (Math.PI / 2) * r;
+  const total = 2 * straightW + 2 * straightH + 4 * arc;
+  let d = t * total;
+  const hw = w / 2;
+  const hh = h / 2;
+
+  const segs: Array<[number, (s: number) => [number, number]]> = [
+    [straightW, (s) => [-hw + r + s, hh]],
+    [arc, (s) => corner(hw - r, hh - r, Math.PI / 2 - s / r)],
+    [straightH, (s) => [hw, hh - r - s]],
+    [arc, (s) => corner(hw - r, -hh + r, -s / r)],
+    [straightW, (s) => [hw - r - s, -hh]],
+    [arc, (s) => corner(-hw + r, -hh + r, -Math.PI / 2 - s / r)],
+    [straightH, (s) => [-hw, -hh + r + s]],
+    [arc, (s) => corner(-hw + r, hh - r, Math.PI - s / r)],
+  ];
+  function corner(cx: number, cy: number, a: number): [number, number] {
+    return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  }
+  for (const [len, fn] of segs) {
+    if (d <= len) return fn(d);
+    d -= len;
+  }
+  return [-hw + r, hh];
+}
+
+function phone(n: number, sparks: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const W = 1.3;
+  const H = 2.62;
+  const R = 0.2;
+  const D = 0.07;
+
+  // Screen UI blocks in screen-space units (inset from the body).
+  const sw = W - 0.14;
+  const sh = H - 0.14;
+  const sx = (u: number) => -sw / 2 + u * sw;
+  const sy = (v: number) => -sh / 2 + v * sh;
+  const blocks: Rect[] = [
+    [sx(0.08), sy(0.62), sx(0.92), sy(0.88)], // hero card
+    [sx(0.08), sy(0.54), sx(0.6), sy(0.575)], // title bar
+    [sx(0.08), sy(0.5), sx(0.42), sy(0.52)], // subtitle
+  ];
+  for (let row = 0; row < 4; row++) {
+    const top = 0.44 - row * 0.085;
+    blocks.push([sx(0.08), sy(top - 0.055), sx(0.2), sy(top)]); // avatar
+    blocks.push([sx(0.26), sy(top - 0.022), sx(0.86), sy(top)]); // line 1
+    blocks.push([sx(0.26), sy(top - 0.05), sx(0.62), sy(top - 0.034)]); // line 2
+  }
+  for (let tab = 0; tab < 4; tab++) {
+    const cx = 0.17 + tab * 0.22;
+    blocks.push([sx(cx - 0.035), sy(0.04), sx(cx + 0.035), sy(0.075)]);
+  }
+  const areas = blocks.map(([a, b, c, d]) => (c - a) * (d - b));
+  const totalArea = areas.reduce((s, v) => s + v, 0);
+
+  const pickBlock = () => {
+    let k = rng() * totalArea;
+    for (let b = 0; b < blocks.length; b++) {
+      if (k < areas[b]) return blocks[b];
+      k -= areas[b];
+    }
+    return blocks[0];
+  };
+
+  for (let i = 0; i < n; i++) {
+    if (i < sparks) {
+      if (rng() < 0.45) {
+        // Dynamic-island pill.
+        const [px, py] = roundedRectPoint(0.36, 0.09, 0.045, rng());
+        set(out, i, px, H / 2 - 0.16 + py, D + 0.01);
+      } else {
+        // Highlights on the hero card.
+        const b = blocks[0];
+        set(
+          out,
+          i,
+          b[0] + rng() * (b[2] - b[0]),
+          b[1] + rng() * (b[3] - b[1]),
+          D + 0.02,
+        );
+      }
+      continue;
+    }
+    const u = rng();
+    if (u < 0.3) {
+      const [px, py] = roundedRectPoint(W, H, R, rng());
+      set(out, i, px, py, D);
+    } else if (u < 0.4) {
+      const [px, py] = roundedRectPoint(W, H, R, rng());
+      set(out, i, px, py, -D);
+    } else if (u < 0.5) {
+      const [px, py] = roundedRectPoint(W, H, R, rng());
+      set(out, i, px, py, (rng() * 2 - 1) * D);
+    } else {
+      const b = pickBlock();
+      set(
+        out,
+        i,
+        b[0] + rng() * (b[2] - b[0]),
+        b[1] + rng() * (b[3] - b[1]),
+        D + 0.005,
+      );
+    }
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------- globe */
+
+function globe(n: number, sparks: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const R = 1.45;
+  const meridians = 12;
+  const parallels = 9;
+
+  // City-light clusters.
+  const cities: Array<[number, number, number]> = [];
+  for (let c = 0; c < 26; c++) {
+    const z = rng() * 2 - 1;
+    const a = rng() * Math.PI * 2;
+    const s = Math.sqrt(1 - z * z);
+    cities.push([s * Math.cos(a), z, s * Math.sin(a)]);
+  }
+
+  const onSphere = (x: number, y: number, z: number, r: number) => {
+    const l = Math.hypot(x, y, z) || 1;
+    return [(x / l) * r, (y / l) * r, (z / l) * r] as const;
+  };
+
+  for (let i = 0; i < n; i++) {
+    if (i < sparks) {
+      const c = cities[i % cities.length];
+      const [x, y, z] = onSphere(
+        c[0] + gauss(rng) * 0.05,
+        c[1] + gauss(rng) * 0.05,
+        c[2] + gauss(rng) * 0.05,
+        R * 1.01,
+      );
+      set(out, i, x, y, z);
+      continue;
+    }
+    const u = rng();
+    if (u < 0.3) {
+      const lon = (Math.floor(rng() * meridians) / meridians) * Math.PI;
+      const a = rng() * Math.PI * 2;
+      const x = Math.cos(a) * Math.cos(lon);
+      const z = Math.cos(a) * Math.sin(lon);
+      set(out, i, x * R, Math.sin(a) * R, z * R);
+    } else if (u < 0.55) {
+      const lat =
+        ((Math.floor(rng() * parallels) + 1) / (parallels + 1)) * Math.PI -
+        Math.PI / 2;
+      const a = rng() * Math.PI * 2;
+      const r = Math.cos(lat) * R;
+      set(out, i, Math.cos(a) * r, Math.sin(lat) * R, Math.sin(a) * r);
+    } else {
+      const z = rng() * 2 - 1;
+      const a = rng() * Math.PI * 2;
+      const s = Math.sqrt(1 - z * z);
+      const r = R * (0.985 + rng() * 0.03);
+      set(out, i, s * Math.cos(a) * r, z * r, s * Math.sin(a) * r);
+    }
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------- brain */
+
+function brain(n: number, sparks: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const hemis: Array<[number, number, number, number, number, number]> = [
+    [-0.52, 0.05, 0, 0.82, 0.95, 1.1],
+    [0.52, 0.05, 0, 0.82, 0.95, 1.1],
+  ];
+
+  // Nodes inside the two hemispheres.
+  const nodes: Array<[number, number, number]> = [];
+  while (nodes.length < 36) {
+    const h = hemis[nodes.length % 2];
+    const x = rng() * 2 - 1;
+    const y = rng() * 2 - 1;
+    const z = rng() * 2 - 1;
+    if (x * x + y * y + z * z > 1) continue;
+    nodes.push([h[0] + x * h[3] * 0.9, h[1] + y * h[4] * 0.9, h[2] + z * h[5] * 0.9]);
+  }
+  // Each node links to its three nearest neighbours.
+  const edges: Array<[number, number]> = [];
+  nodes.forEach((a, ai) => {
+    const near = nodes
+      .map((b, bi) => [bi, Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2])] as const)
+      .filter(([bi]) => bi !== ai)
+      .sort((p, q) => p[1] - q[1])
+      .slice(0, 3);
+    for (const [bi] of near) if (ai < bi) edges.push([ai, bi]);
+  });
+
+  for (let i = 0; i < n; i++) {
+    if (i < sparks) {
+      const c = nodes[i % nodes.length];
+      set(
+        out,
+        i,
+        c[0] + gauss(rng) * 0.035,
+        c[1] + gauss(rng) * 0.035,
+        c[2] + gauss(rng) * 0.035,
+      );
+      continue;
+    }
+    const u = rng();
+    if (u < 0.22) {
+      const c = nodes[Math.floor(rng() * nodes.length)];
+      set(
+        out,
+        i,
+        c[0] + gauss(rng) * 0.08,
+        c[1] + gauss(rng) * 0.08,
+        c[2] + gauss(rng) * 0.08,
+      );
+    } else if (u < 0.6) {
+      const [a, b] = edges[Math.floor(rng() * edges.length)];
+      const t = rng();
+      const pa = nodes[a];
+      const pb = nodes[b];
+      set(
+        out,
+        i,
+        pa[0] + (pb[0] - pa[0]) * t + gauss(rng) * 0.012,
+        pa[1] + (pb[1] - pa[1]) * t + gauss(rng) * 0.012,
+        pa[2] + (pb[2] - pa[2]) * t + gauss(rng) * 0.012,
+      );
+    } else {
+      // Folded cortex shell.
+      const h = hemis[rng() < 0.5 ? 0 : 1];
+      const theta = rng() * Math.PI * 2;
+      const phi = Math.acos(rng() * 2 - 1);
+      const fold = 1 + 0.07 * Math.sin(theta * 7) * Math.sin(phi * 9);
+      const x = Math.sin(phi) * Math.cos(theta) * h[3] * fold;
+      const y = Math.cos(phi) * h[4] * fold;
+      const z = Math.sin(phi) * Math.sin(theta) * h[5] * fold;
+      // Flatten the inner face so the hemispheres read as two halves.
+      const inner = Math.sign(h[0]) * x < -h[3] * 0.72 ? 0.72 : 1;
+      set(out, i, h[0] + x * inner, h[1] + y, h[2] + z);
+    }
+  }
+  return out;
+}
+
+/* --------------------------------------------------------------- torus */
+
+function torus(n: number, sparks: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const R = 1.18;
+  const r = 0.3;
+  const ringR = 1.78;
+  // Mostly facing the camera (pi/2 would be edge-on-to-camera flat circle),
+  // with enough lean to read as a solid donut with depth.
+  const tilt = 1.2;
+  const ct = Math.cos(tilt);
+  const st = Math.sin(tilt);
+
+  const put = (i: number, x: number, y: number, z: number) => {
+    // Tilt around X so the ring reads as an ellipse facing the camera.
+    set(out, i, x, y * ct - z * st, y * st + z * ct);
+  };
+
+  for (let i = 0; i < n; i++) {
+    if (i < sparks || rng() < 0.12) {
+      const a = rng() * Math.PI * 2;
+      const rr = ringR + gauss(rng) * 0.015;
+      put(i, Math.cos(a) * rr, gauss(rng) * 0.01, Math.sin(a) * rr);
+      continue;
+    }
+    const u = rng() * Math.PI * 2;
+    const v = rng() * Math.PI * 2;
+    const rr = r * (0.97 + rng() * 0.06);
+    put(
+      i,
+      (R + rr * Math.cos(v)) * Math.cos(u),
+      rr * Math.sin(v),
+      (R + rr * Math.cos(v)) * Math.sin(u),
+    );
+  }
+  return out;
+}
+
+
+/* ---------------------------------------------------------- phone trio */
+
+/**
+ * Three phone outlines, one per particle `i % 3`, in phone-local units:
+ * centred, +y up, +z out of the screen, front glass at z = DEPTH / 2.
+ * The silhouette sits a hair outside the body so it survives as an aura
+ * once the solid phone appears; screen details sit a hair inside the body
+ * so the solid phone hides them.
+ *
+ * The phones face the viewer, so the outline draws only what reads from the
+ * FRONT: the silhouette, the screen and its rounded corners, the dynamic
+ * island and the side buttons. Nothing from the back (no camera bump or
+ * lenses): the points are additive and unoccluded before the phone is solid,
+ * so anything on the back would show through the screen like an x-ray.
+ */
+function phoneTrio(n: number, sparks: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const kind = new Float32Array(n);
+  const HALF_D = DEPTH / 2;
+  const RIM = 0.014; // silhouette offset outside the body
+  const INSIDE = HALF_D - 0.018; // screen details just under the glass
+  const jit = (s: number) => gauss(rng) * s;
+
+  // Side buttons (centre y, length), matching the device rig's parts:
+  // left: action, volume up, volume down; right: side button.
+  const buttons: Array<[side: number, y: number, len: number]> = [
+    [-1, 0.86, 0.1],
+    [-1, 0.6, 0.21],
+    [-1, 0.32, 0.21],
+    [1, 0.48, 0.36],
+  ];
+  const BUTTON_X = PHONE_W / 2 + 0.03;
+  const BUTTON_HALF_D = 0.031;
+  const buttonPoint = (i: number) => {
+    const [side, cy, len] = buttons[Math.floor(rng() * buttons.length)];
+    // Outline of a thin capsule standing proud of the frame (y/z plane).
+    const u = rng();
+    let y: number;
+    let z: number;
+    if (u < 0.7) {
+      y = cy + (rng() - 0.5) * len;
+      z = (rng() < 0.5 ? -1 : 1) * BUTTON_HALF_D;
+    } else {
+      y = cy + (rng() < 0.5 ? -0.5 : 0.5) * len;
+      z = (rng() * 2 - 1) * BUTTON_HALF_D;
+    }
+    set(out, i, side * (BUTTON_X + jit(0.002)), y, z);
+  };
+
+  // Dynamic island (as the rig draws it).
+  const islandW = 0.358;
+  const islandH = 0.104;
+  const islandY = SCREEN_H / 2 - 0.084;
+  const islandPoint = (i: number, z: number) => {
+    const [px, py] = roundedRectPoint(islandW, islandH, islandH / 2, rng());
+    set(out, i, px + jit(0.0015), islandY + py + jit(0.0015), z);
+  };
+
+  /**
+   * A point on one of the four rounded corners of a w x h rect with corner
+   * radius r, bunched towards the middle of the arc (spread in radians).
+   */
+  const cornerPoint = (i: number, w: number, h: number, r: number, spread: number, z: number) => {
+    const sx = rng() < 0.5 ? -1 : 1;
+    const sy = rng() < 0.5 ? -1 : 1;
+    const a = Math.PI / 4 + jit(spread);
+    set(
+      out,
+      i,
+      sx * (w / 2 - r + Math.cos(a) * r),
+      sy * (h / 2 - r + Math.sin(a) * r),
+      z,
+    );
+  };
+  // Screen corners: the inner arcs where the glass meets the bezel.
+  const screenCorner = (i: number, spread: number) =>
+    cornerPoint(i, SCREEN_W, SCREEN_H, SCREEN_CORNER, spread, INSIDE);
+  // Body corners: the outer silhouette arcs, on the front rim.
+  const bodyCorner = (i: number, spread: number) =>
+    cornerPoint(i, PHONE_W + RIM * 2, PHONE_H + RIM * 2, CORNER + RIM, spread, HALF_D - 0.01);
+
+  // Screen fill: a jittered dot lattice, so the outline reads as a lit
+  // dot-matrix screen rather than noise.
+  const GRID = 0.052;
+  const cols = Math.floor((SCREEN_W - 0.08) / GRID);
+  const rows = Math.floor((SCREEN_H - 0.08) / GRID);
+
+  for (let i = 0; i < n; i++) {
+    if (i < sparks) {
+      kind[i] = KIND.SPARK;
+      const u = rng();
+      if (u < 0.22) {
+        // The island's rim, just under the glass (the solid island hides it).
+        islandPoint(i, INSIDE + 0.002);
+      } else if (u < 0.44) {
+        // Small glints on the screen's rounded corners.
+        screenCorner(i, 0.14);
+      } else if (u < 0.72) {
+        // A short bright arc on each corner of the front silhouette.
+        bodyCorner(i, 0.16);
+      } else {
+        buttonPoint(i);
+      }
+      continue;
+    }
+
+    const u = rng();
+    if (u < 0.5) {
+      // Silhouette: front and back edges of the rounded body.
+      kind[i] = KIND.SILHOUETTE;
+      const [px, py] = roundedRectPoint(PHONE_W + RIM * 2, PHONE_H + RIM * 2, CORNER + RIM, rng());
+      const front = rng() < 0.56;
+      const z = front ? HALF_D - 0.012 : -HALF_D + 0.012;
+      set(out, i, px + jit(0.0025), py + jit(0.0025), z + jit(0.003));
+    } else if (u < 0.65) {
+      // Screen edge.
+      kind[i] = KIND.INNER;
+      const [px, py] = roundedRectPoint(SCREEN_W, SCREEN_H, SCREEN_CORNER, rng());
+      set(out, i, px + jit(0.002), py + jit(0.002), INSIDE);
+    } else if (u < 0.71) {
+      // Front details: island, screen-corner arcs, and a denser rim on the
+      // body corners so the silhouette reads as a rounded front face.
+      const v = rng();
+      if (v < 0.45) {
+        kind[i] = KIND.INNER;
+        islandPoint(i, INSIDE);
+      } else if (v < 0.75) {
+        kind[i] = KIND.INNER;
+        screenCorner(i, 0.32);
+      } else {
+        kind[i] = KIND.SILHOUETTE;
+        bodyCorner(i, 0.36);
+      }
+    } else if (u < 0.96) {
+      kind[i] = KIND.INNER;
+      const c = Math.floor(rng() * cols);
+      const r = Math.floor(rng() * rows);
+      const x = -((cols - 1) * GRID) / 2 + c * GRID + jit(0.004);
+      const y = -((rows - 1) * GRID) / 2 + r * GRID + jit(0.004);
+      set(out, i, x, y, INSIDE - 0.004);
+    } else {
+      kind[i] = KIND.OUTER;
+      buttonPoint(i);
+    }
+  }
+  return { out, kind };
+}
+
+/* ---------------------------------------------------------------- wave */
+
+function wave(n: number, rng: Rng) {
+  const out = new Float32Array(n * 3);
+  const cols = Math.round(Math.sqrt(n * 2.2));
+  const rows = Math.ceil(n / cols);
+  const tilt = 0.42;
+  const ct = Math.cos(tilt);
+  const st = Math.sin(tilt);
+
+  for (let i = 0; i < n; i++) {
+    const c = i % cols;
+    const r = Math.floor(i / cols);
+    const x = -5.5 + (c / (cols - 1)) * 11 + (rng() - 0.5) * 0.02;
+    const z = -3.2 + (r / Math.max(1, rows - 1)) * 5.2;
+    const y = 0.22 * Math.sin(x * 0.85) + 0.18 * Math.cos(z * 1.3 + x * 0.4);
+    // Tilt the plane toward the camera, then drop it below centre.
+    set(out, i, x, y * ct - z * st - 0.9, y * st + z * ct);
+  }
+  return out;
+}
+
+/* ------------------------------------------------------------ portrait */
+
+/** Is the card-local point inside the card's rounded rect (inset by `pad`)? */
+function inCard(x: number, y: number, pad: number) {
+  const hw = CARD_W / 2 - pad;
+  const hh = CARD_H / 2 - pad;
+  const r = Math.max(0, CARD_R - pad);
+  const qx = Math.abs(x) - (hw - r);
+  const qy = Math.abs(y) - (hh - r);
+  if (qx <= 0 || qy <= 0) return Math.abs(x) <= hw && Math.abs(y) <= hh;
+  return qx * qx + qy * qy <= r * r;
+}
+
+/**
+ * The founder card as a halftone screen: a regular dot grid over the card
+ * (the page samples the photo into aTone later), the card's rounded outline,
+ * and yellow sparks on its four corners. Grid cells are listed row-major
+ * from the top-left so a tone image maps straight onto them.
+ */
+function portrait(n: number, sparks: number, rng: Rng, mobile: boolean) {
+  const out = new Float32Array(n * 3);
+  const tone = new Float32Array(n);
+  const cols = portraitCols(mobile);
+  const rows = Math.round((cols * CARD_H) / CARD_W);
+  const index = new Int32Array(cols * rows).fill(-1);
+  const jit = (s: number) => gauss(rng) * s;
+  const RIM = 0.012;
+
+  let i = sparks;
+  // Halftone grid, clipped to the rounded card.
+  for (let r = 0; r < rows && i < n; r++) {
+    for (let c = 0; c < cols && i < n; c++) {
+      const x = -CARD_W / 2 + ((c + 0.5) / cols) * CARD_W;
+      const y = CARD_H / 2 - ((r + 0.5) / rows) * CARD_H;
+      if (!inCard(x, y, 0.004)) continue;
+      set(out, i, x, y, 0);
+      tone[i] = TONE.MID;
+      index[r * cols + c] = i;
+      i++;
+    }
+  }
+  // Everything left traces the outline, a hair outside the card.
+  for (; i < n; i++) {
+    const [px, py] = roundedRectPoint(CARD_W + RIM * 2, CARD_H + RIM * 2, CARD_R + RIM, rng());
+    set(out, i, px + jit(0.0015), py + jit(0.0015), jit(0.002));
+    tone[i] = TONE.BORDER;
+  }
+  // Sparks: a short bright arc on each corner; the rest sit out.
+  for (let k = 0; k < sparks; k++) {
+    if (k % 3 !== 0) {
+      const [px, py] = roundedRectPoint(CARD_W + RIM * 2, CARD_H + RIM * 2, CARD_R + RIM, rng());
+      set(out, k, px, py, 0);
+      tone[k] = TONE.HIDDEN;
+      continue;
+    }
+    const sx = rng() < 0.5 ? -1 : 1;
+    const sy = rng() < 0.5 ? -1 : 1;
+    const a = Math.PI / 4 + jit(0.22);
+    const rr = CARD_R + RIM;
+    set(
+      out,
+      k,
+      sx * (CARD_W / 2 + RIM - rr + Math.cos(a) * rr),
+      sy * (CARD_H / 2 + RIM - rr + Math.sin(a) * rr),
+      0,
+    );
+    tone[k] = TONE.CORNER;
+  }
+  return { out, tone, grid: { cols, rows, index } };
+}
+
+/* ----------------------------------------------------------------- all */
+
+export function buildShapes(n: number, mobile = n < 10000): SignalShapes {
+  const rng = mulberry32(20260922);
+  const sparkCount = Math.round(n * 0.035);
+
+  const dir = new Float32Array(n * 3);
+  const seed = new Float32Array(n);
+  const spark = new Float32Array(n);
+  const phoneOf = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    phoneOf[i] = i % 3;
+    const z = rng() * 2 - 1;
+    const a = rng() * Math.PI * 2;
+    const s = Math.sqrt(1 - z * z);
+    dir[i * 3] = s * Math.cos(a);
+    dir[i * 3 + 1] = z;
+    dir[i * 3 + 2] = s * Math.sin(a);
+    seed[i] = rng();
+    spark[i] = i < sparkCount ? 1 : 0;
+  }
+
+  const trio = phoneTrio(n, sparkCount, rng);
+  const wav = wave(n, rng);
+  // Own stream, so the portrait never reshuffles the shapes before it.
+  const card = portrait(n, sparkCount, mulberry32(7070), mobile);
+  const shapes = [
+    bulb(n, sparkCount, rng),
+    phone(n, sparkCount, rng),
+    globe(n, sparkCount, rng),
+    brain(n, sparkCount, rng),
+    torus(n, sparkCount, rng),
+    trio.out,
+    wav,
+    card.out,
+  ];
+
+  // Wave sparks: scatter the yellow indices across the grid instead of
+  // bunching them in the first rows.
+  const w = shapes[6];
+  for (let i = 0; i < sparkCount; i++) {
+    const j = sparkCount + Math.floor(rng() * (n - sparkCount));
+    for (let k = 0; k < 3; k++) {
+      const tmp = w[i * 3 + k];
+      w[i * 3 + k] = w[j * 3 + k];
+      w[j * 3 + k] = tmp;
+    }
+  }
+
+  return {
+    count: n,
+    shapes,
+    dir,
+    seed,
+    spark,
+    phone: phoneOf,
+    kind: trio.kind,
+    tone: card.tone,
+    grid: card.grid,
+  };
+}

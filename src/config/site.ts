@@ -27,7 +27,7 @@ export const siteConfig = {
     cta: { text: "Start a conversation", href: "#contact" },
     secondaryCta: { text: "See the work", href: "#work" },
     ringText: "Bold ideas · Brilliant execution · ",
-    marquee: ["KGAY Travel", "BetweenActs", "Ahoy", "Your app next"],
+    marquee: ["KGAY Travel", "BetweenActs", "MyCruiseCard", "Your app next"],
   },
 
   // Heading + intro for the services section. Kept alongside `services`
@@ -92,13 +92,14 @@ export const siteConfig = {
       screenshot: "/betweenacts-app-screenshot.png",
     },
     {
-      name: "Ahoy",
+      name: "MyCruiseCard",
       category: "Travel & Lifestyle",
       description:
         "Your digital cruise companion — making every voyage seamless and unforgettable.",
       color: "#1E90F0",
       icon: "Ship",
       status: "In development",
+      screenshot: "/mycruisecard-app-screenshot.png",
     },
     {
       name: "More Coming",

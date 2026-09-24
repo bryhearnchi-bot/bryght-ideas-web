@@ -1,0 +1,1309 @@
+/* ======================================================================
+   How we work — a bento of four live cards. Prefix so-ap-.
+   Rule of thumb for every demo: the base styles are the finished frame
+   (reduced motion, no JS, not yet in view); loops only run under
+   [data-play="true"], and the hero moment under [data-hero="true"] /
+   .so-ap-card[data-lit="true"].
+   ====================================================================== */
+
+.so-ap {
+  --ap-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ap-spring: cubic-bezier(0.2, 0.9, 0.25, 1.12);
+  --ap-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+/* ---------- heading ---------- */
+
+.so-ap-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--so-blue);
+  transition:
+    opacity 0.8s var(--ap-ease),
+    transform 0.9s var(--ap-ease);
+}
+.so-ap-eyebrow-line {
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+}
+.so-ap-eyebrow-count {
+  color: #6f7b90;
+}
+.so-ap-h {
+  margin-top: 18px;
+  color: var(--so-ink);
+  font-size: clamp(56px, 8.2vw, 132px);
+}
+.so-ap-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+.so-ap-mask > span {
+  display: block;
+  transition: transform 1.1s var(--ap-ease) 0.08s;
+}
+.so-ap-head[data-in="false"] .so-ap-mask > span {
+  transform: translateY(108%);
+}
+.so-ap-head[data-in="false"] .so-ap-eyebrow {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* ---------- bento ---------- */
+
+.so-ap-grid {
+  list-style: none;
+  margin: 40px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (min-width: 768px) {
+  .so-ap-grid {
+    margin-top: 56px;
+    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1200px) {
+  .so-ap-grid {
+    margin-top: 72px;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .so-ap-cell:nth-child(1),
+  .so-ap-cell:nth-child(4) {
+    grid-column: span 7;
+  }
+  .so-ap-cell:nth-child(2),
+  .so-ap-cell:nth-child(3) {
+    grid-column: span 5;
+  }
+}
+
+.so-ap-cell {
+  display: flex;
+  min-width: 0;
+  transition:
+    opacity 0.9s var(--ap-ease),
+    transform 1s var(--ap-ease);
+}
+@media (min-width: 768px) {
+  .so-ap-cell {
+    transition-delay: calc(var(--k, 0) * 90ms);
+  }
+}
+.so-ap-cell[data-seen="false"] {
+  opacity: 0;
+  transform: translateY(48px);
+}
+
+/* ---------- card: glass, spotlight, border glow, tilt ---------- */
+
+.so-ap-card {
+  --mx: 50%;
+  --my: 0%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 8px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(17, 24, 38, 0.74), rgba(10, 14, 23, 0.64));
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid var(--so-line);
+  transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition:
+    transform 0.9s var(--ap-spring),
+    border-color 0.4s ease;
+}
+.so-ap-card[data-hover="true"] {
+  transition:
+    transform 0.2s ease-out,
+    border-color 0.4s ease;
+}
+.so-ap-card::before,
+.so-ap-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+}
+/* Spotlight. */
+.so-ap-card::before {
+  background: radial-gradient(520px circle at var(--mx) var(--my), rgba(30, 144, 240, 0.15), transparent 62%);
+}
+/* Border glow: a 1px ring, brightest near the pointer. */
+.so-ap-card::after {
+  z-index: 2;
+  padding: 1px;
+  background: radial-gradient(300px circle at var(--mx) var(--my), rgba(140, 196, 255, 0.95), rgba(30, 144, 240, 0.25) 45%, transparent 75%);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+.so-ap-card[data-lit="true"]::before,
+.so-ap-card[data-lit="true"]::after {
+  opacity: 1;
+}
+
+.so-ap-stage {
+  position: relative;
+  z-index: 1;
+  height: 212px;
+  border-radius: 19px;
+  overflow: hidden;
+  container-type: inline-size;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(30, 144, 240, 0.1), transparent 62%),
+    rgba(6, 9, 16, 0.62);
+  box-shadow: inset 0 0 0 1px rgba(238, 243, 251, 0.06);
+}
+@media (min-width: 768px) {
+  .so-ap-stage {
+    height: 236px;
+  }
+}
+@media (min-width: 1200px) {
+  .so-ap-stage {
+    height: 250px;
+  }
+}
+
+.so-ap-body {
+  position: relative;
+  z-index: 1;
+  padding: 20px 14px 14px;
+}
+@media (min-width: 768px) {
+  .so-ap-body {
+    padding: 24px 18px 18px;
+  }
+}
+.so-ap-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #6f7b90;
+}
+.so-ap-idx {
+  color: var(--so-blue);
+  transition: color 0.3s ease;
+}
+.so-ap-card[data-lit="true"] .so-ap-idx {
+  color: var(--so-yellow);
+}
+.so-ap-meta-rule {
+  width: 22px;
+  height: 1px;
+  background: rgba(238, 243, 251, 0.2);
+}
+.so-ap-title {
+  margin: 14px 0 0;
+  color: var(--so-ink);
+  font-size: clamp(28px, 2.5vw, 38px);
+  line-height: 0.95;
+}
+.so-ap-desc {
+  margin: 10px 0 0;
+  max-width: 46ch;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #b9c3d4;
+}
+
+/* ======================================================================
+   01 · Code editor
+   ====================================================================== */
+
+.so-ap-code {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
+  bottom: -1px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(12, 17, 28, 0.96), rgba(8, 11, 19, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(238, 243, 251, 0.09),
+    0 30px 60px -24px rgba(0, 0, 0, 0.8);
+  font-family: var(--ap-mono);
+  font-size: 12.5px;
+}
+.so-ap-bar {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 34px;
+  padding-left: 12px;
+  border-bottom: 1px solid var(--so-line);
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+}
+.so-ap-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 10px;
+}
+.so-ap-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(238, 243, 251, 0.14);
+}
+.so-ap-tab {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #6f7b90;
+  white-space: nowrap;
+}
+.so-ap-tab[data-on="true"] {
+  color: var(--so-ink);
+  background: rgba(238, 243, 251, 0.035);
+  box-shadow: inset 0 -1.5px 0 var(--so-blue);
+}
+.so-ap-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 0 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #9aa6ba;
+}
+.so-ap-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--so-yellow);
+  transition: background-color 0.3s ease;
+}
+.so-ap-status[data-s="suggest"] {
+  color: #8cc4ff;
+}
+.so-ap-status[data-s="suggest"] .so-ap-status-dot,
+.so-ap-status[data-s="accepted"] .so-ap-status-dot {
+  background: var(--so-blue);
+  box-shadow: 0 0 10px rgba(30, 144, 240, 0.9);
+}
+.so-ap-status[data-s="ready"] .so-ap-status-dot {
+  background: #8cc4ff;
+}
+
+.so-ap-lines {
+  position: relative;
+  flex: 1;
+  padding: 12px 0;
+  transition: opacity 0.5s ease;
+}
+.so-ap-code[data-fade="true"] .so-ap-lines {
+  opacity: 0;
+}
+.so-ap-line {
+  position: relative;
+  display: flex;
+  height: 21px;
+  line-height: 21px;
+  white-space: pre;
+  transition: background-color 0.9s ease;
+}
+.so-ap-line[data-cur="true"] {
+  background: rgba(238, 243, 251, 0.035);
+}
+.so-ap-line[data-flash="true"] {
+  background: rgba(30, 144, 240, 0.18);
+  transition: none;
+}
+.so-ap-line[data-ai="true"]::before {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  bottom: 3px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--so-blue);
+  box-shadow: 0 0 8px rgba(30, 144, 240, 0.8);
+}
+.so-ap-ln {
+  flex: 0 0 40px;
+  padding-right: 14px;
+  text-align: right;
+  color: #47526a;
+}
+.so-ap-line[data-cur="true"] .so-ap-ln {
+  color: #9aa6ba;
+}
+.so-ap-src {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.so-ap-tk-k {
+  color: #5aa9ff;
+}
+.so-ap-tk-f {
+  color: var(--so-ink);
+  font-weight: 600;
+}
+.so-ap-tk-t {
+  color: var(--so-yellow);
+}
+.so-ap-tk-v {
+  color: #b9c3d4;
+}
+.so-ap-tk-p {
+  color: #76839a;
+}
+.so-ap-ghost,
+.so-ap-ghost [class*="so-ap-tk-"] {
+  color: rgba(120, 182, 255, 0.52);
+  font-weight: 400;
+}
+.so-ap-line[data-flash="true"] [class*="so-ap-tk-"] {
+  animation: so-ap-accept 0.8s ease-out;
+}
+@keyframes so-ap-accept {
+  from {
+    color: #bfe0ff;
+  }
+}
+
+.so-ap-caret {
+  display: inline-block;
+  width: 2px;
+  height: 15px;
+  margin: 0 1px;
+  border-radius: 1px;
+  background: var(--so-yellow);
+}
+.so-ap-code[data-play="true"] .so-ap-caret {
+  animation: so-ap-blink 1.05s steps(1) infinite;
+}
+@keyframes so-ap-blink {
+  55% {
+    opacity: 0;
+  }
+}
+
+.so-ap-chip,
+.so-ap-key {
+  display: inline-flex;
+  align-items: center;
+  height: 17px;
+  border-radius: 5px;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.so-ap-chip {
+  margin-left: 12px;
+  padding: 0 5px;
+  color: #bfe0ff;
+  background: rgba(30, 144, 240, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(30, 144, 240, 0.6);
+  transition: box-shadow 0.3s ease;
+}
+.so-ap-card[data-lit="true"] .so-ap-chip {
+  box-shadow:
+    inset 0 0 0 1px rgba(140, 196, 255, 0.9),
+    0 0 16px rgba(30, 144, 240, 0.75);
+}
+.so-ap-key {
+  margin-left: 6px;
+  padding: 0 6px;
+  color: var(--so-ink);
+  background: rgba(238, 243, 251, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(238, 243, 251, 0.24),
+    0 2px 0 rgba(238, 243, 251, 0.2);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease,
+    background-color 0.1s ease;
+}
+.so-ap-key[data-down="true"] {
+  transform: translateY(2px);
+  background: rgba(30, 144, 240, 0.5);
+  box-shadow:
+    inset 0 0 0 1px rgba(140, 196, 255, 0.9),
+    0 0 0 rgba(238, 243, 251, 0);
+}
+
+/* Minimap: only where the editor is wide. */
+.so-ap-mini {
+  display: none;
+}
+@container (min-width: 520px) {
+  .so-ap-code {
+    left: 22px;
+    right: 22px;
+    top: 20px;
+    font-size: 13.5px;
+  }
+  .so-ap-lines {
+    padding-top: 14px;
+  }
+  .so-ap-line {
+    height: 23px;
+    line-height: 23px;
+  }
+  .so-ap-caret {
+    height: 16px;
+  }
+  .so-ap-mini {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 58px;
+    padding-left: 12px;
+    border-left: 1px solid var(--so-line);
+  }
+  .so-ap-mini i {
+    display: block;
+    height: 2px;
+    border-radius: 2px;
+    background: rgba(238, 243, 251, 0.16);
+    transition: width 0.12s linear;
+  }
+  .so-ap-mini i[data-ai="true"] {
+    background: rgba(30, 144, 240, 0.7);
+  }
+}
+@container (max-width: 380px) {
+  .so-ap-code {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    font-size: 11px;
+  }
+  .so-ap-tab + .so-ap-tab {
+    display: none;
+  }
+  .so-ap-line {
+    height: 19px;
+    line-height: 19px;
+  }
+  .so-ap-ln {
+    flex-basis: 30px;
+    padding-right: 10px;
+  }
+  .so-ap-line[data-ai="true"]::before {
+    left: 4px;
+  }
+  .so-ap-chip {
+    margin-left: 8px;
+  }
+}
+
+/* ======================================================================
+   02 · Isometric stack (CSS 3D, orthographic)
+   Screen position of a slab's right-hand corner, for rotateX(58deg)
+   rotateZ(-40deg) and a slab lifted by z:
+     x = 0.7045 * s,   y = 0.0325 * s - 0.848 * z
+   ====================================================================== */
+
+.so-ap-stack {
+  --s: 146px;
+  --th: 7px;
+  --gap: 11px;
+  --cx: calc(50% - 72px);
+  --cy: 53%;
+  position: absolute;
+  inset: 0;
+}
+.so-ap-stack[data-hero="true"] {
+  --gap: 25px;
+}
+@container (max-width: 420px) {
+  .so-ap-stack {
+    --s: 112px;
+    --th: 6px;
+    --cx: calc(50% - 62px);
+  }
+  .so-ap-stack[data-hero="true"] {
+    --gap: 23px;
+  }
+}
+/* Soft floor shadow. */
+.so-ap-stack::before {
+  content: "";
+  position: absolute;
+  left: var(--cx);
+  top: calc(var(--cy) + var(--s) * 0.42);
+  width: calc(var(--s) * 1.7);
+  height: calc(var(--s) * 0.5);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(30, 144, 240, 0.28), transparent);
+  filter: blur(6px);
+}
+
+.so-ap-float {
+  position: absolute;
+  inset: 0;
+}
+.so-ap-stack[data-play="true"] .so-ap-float {
+  animation: so-ap-float 3.4s ease-in-out infinite alternate;
+}
+@keyframes so-ap-float {
+  from {
+    transform: translateY(3px);
+  }
+  to {
+    transform: translateY(-4px);
+  }
+}
+
+.so-ap-iso {
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  width: var(--s);
+  height: var(--s);
+  margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+  transform-style: preserve-3d;
+  transform: rotateX(58deg) rotateZ(-40deg);
+}
+.so-ap-slab {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: translateZ(calc((var(--i) - 2) * var(--gap)));
+  transition: transform 0.95s var(--ap-ease) calc(var(--i) * 70ms);
+}
+.so-ap-stack[data-landed="false"] .so-ap-slab {
+  transform: translateZ(calc((var(--i) - 2) * var(--gap) + 260px));
+}
+.so-ap-face,
+.so-ap-edge {
+  transition: opacity 0.6s ease calc(var(--i) * 70ms);
+}
+.so-ap-stack[data-landed="false"] .so-ap-face,
+.so-ap-stack[data-landed="false"] .so-ap-edge {
+  opacity: 0;
+}
+.so-ap-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background:
+    linear-gradient(rgba(140, 196, 255, 0.1) 1px, transparent 1px) 0 0 / 18px 18px,
+    linear-gradient(90deg, rgba(140, 196, 255, 0.1) 1px, transparent 1px) 0 0 / 18px 18px,
+    linear-gradient(135deg, rgba(30, 144, 240, 0.34), rgba(21, 101, 216, 0.14) 55%, rgba(10, 13, 20, 0.5));
+  box-shadow: inset 0 0 0 1px rgba(140, 196, 255, 0.5);
+}
+.so-ap-slab:last-child .so-ap-face {
+  background:
+    linear-gradient(rgba(191, 224, 255, 0.14) 1px, transparent 1px) 0 0 / 18px 18px,
+    linear-gradient(90deg, rgba(191, 224, 255, 0.14) 1px, transparent 1px) 0 0 / 18px 18px,
+    linear-gradient(135deg, rgba(90, 169, 255, 0.55), rgba(30, 144, 240, 0.22) 55%, rgba(10, 13, 20, 0.4));
+  box-shadow: inset 0 0 0 1px rgba(191, 224, 255, 0.8);
+}
+.so-ap-face-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px #bfe0ff,
+    0 0 22px rgba(30, 144, 240, 0.65);
+  opacity: 0;
+}
+.so-ap-stack[data-play="true"] .so-ap-face-glow {
+  animation: so-ap-glow 3.2s ease-in-out infinite both;
+  animation-delay: calc(var(--i) * 0.28s);
+}
+@keyframes so-ap-glow {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  38% {
+    opacity: 0;
+  }
+}
+.so-ap-edge {
+  position: absolute;
+  background: linear-gradient(90deg, rgba(30, 144, 240, 0.55), rgba(21, 101, 216, 0.35));
+  box-shadow: inset 0 0 0 1px rgba(140, 196, 255, 0.35);
+}
+.so-ap-edge-s {
+  left: 0;
+  top: 100%;
+  width: 100%;
+  height: var(--th);
+  transform-origin: top;
+  transform: rotateX(-90deg);
+}
+.so-ap-edge-w {
+  top: 0;
+  right: 100%;
+  width: var(--th);
+  height: 100%;
+  transform-origin: right;
+  transform: rotateY(-90deg);
+  background: linear-gradient(180deg, rgba(21, 101, 216, 0.5), rgba(10, 30, 70, 0.6));
+}
+
+.so-ap-labels {
+  position: absolute;
+  left: var(--cx);
+  top: var(--cy);
+  width: 0;
+  height: 0;
+}
+.so-ap-lab {
+  position: absolute;
+  top: 0;
+  left: calc(var(--s) * 0.7045 - 2px);
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  transform: translateY(calc(var(--s) * 0.0325 - 0.848 * (var(--i) - 2) * var(--gap) - 50%));
+  transition: transform 0.95s var(--ap-ease) calc(var(--i) * 70ms);
+}
+.so-ap-lab::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 99px;
+  background: #bfe0ff;
+  box-shadow: 0 0 8px rgba(30, 144, 240, 0.9);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.so-ap-lab-line {
+  width: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, #8cc4ff, rgba(140, 196, 255, 0.35));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.5s var(--ap-ease);
+}
+.so-ap-lab-text {
+  margin-left: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: #d6e8ff;
+  opacity: 0;
+  transform: translateX(-8px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.5s var(--ap-ease);
+}
+.so-ap-stack[data-hero="true"] .so-ap-lab::before {
+  opacity: 1;
+  transition-delay: calc(0.3s + var(--i) * 60ms);
+}
+.so-ap-stack[data-hero="true"] .so-ap-lab-line {
+  transform: scaleX(1);
+  transition-delay: calc(0.35s + var(--i) * 60ms);
+}
+.so-ap-stack[data-hero="true"] .so-ap-lab-text {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(0.5s + var(--i) * 60ms);
+}
+@container (max-width: 420px) {
+  .so-ap-lab-line {
+    width: 16px;
+  }
+  .so-ap-lab-text {
+    margin-left: 6px;
+    font-size: 9.5px;
+    letter-spacing: 0.11em;
+  }
+}
+
+/* ======================================================================
+   03 · Founder-led: the relay collapses into one direct line
+   One 10s loop. Base = finished frame (direct line, founder, team).
+   ====================================================================== */
+
+.so-ap-link {
+  position: absolute;
+  inset: 0;
+}
+.so-ap-link-svg {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 6px;
+  width: calc(100% - 16px);
+  height: calc(100% - 38px);
+  overflow: visible;
+}
+.so-ap-link-cap {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--so-ink);
+}
+.so-ap-link-cap-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--so-yellow);
+}
+
+.so-ap-chain {
+  opacity: 0;
+}
+.so-ap-chain-path {
+  fill: none;
+  stroke: rgba(238, 243, 251, 0.24);
+  stroke-width: 1.25;
+  stroke-dasharray: 3 5;
+}
+.so-ap-comet {
+  fill: none;
+  stroke: #8cc4ff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 0.06 1.2;
+  stroke-dashoffset: 0.06;
+  opacity: 0;
+}
+.so-ap-pill {
+  fill: rgba(12, 17, 28, 0.96);
+  stroke: rgba(238, 243, 251, 0.2);
+}
+.so-ap-pill-t {
+  font-size: 11px;
+  font-weight: 600;
+  fill: #9aa6ba;
+}
+.so-ap-strike {
+  fill: none;
+  stroke: var(--so-yellow);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.so-ap-mid {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.so-ap-direct,
+.so-ap-direct-glow {
+  fill: none;
+  stroke: var(--so-blue);
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.so-ap-direct {
+  stroke-width: 2;
+}
+.so-ap-direct-glow {
+  stroke-width: 9;
+  stroke-opacity: 0.16;
+  transition: stroke-opacity 0.4s ease;
+}
+.so-ap-link[data-hero="true"] .so-ap-direct-glow {
+  stroke-opacity: 0.34;
+}
+.so-ap-pulse {
+  fill: #fff;
+}
+.so-ap-pulse-halo {
+  fill: rgba(140, 196, 255, 0.35);
+}
+.so-ap-pulse-a {
+  transform: translateX(calc(var(--span) * 0.55));
+}
+.so-ap-pulse-b {
+  opacity: 0;
+}
+
+.so-ap-founder {
+  transform-box: view-box;
+  transform-origin: 306px 104px;
+}
+.so-ap-ring {
+  fill: none;
+  stroke: rgba(140, 196, 255, 0.4);
+  stroke-dasharray: 2 4;
+}
+.so-ap-orbit {
+  transform-box: view-box;
+  transform-origin: 306px 104px;
+}
+.so-ap-sat {
+  fill: #8cc4ff;
+  stroke: rgba(10, 13, 20, 0.9);
+  stroke-width: 2;
+  transition: fill 0.3s ease;
+}
+.so-ap-link[data-hero="true"] .so-ap-sat {
+  fill: #eef3fb;
+}
+.so-ap-fnode {
+  fill: var(--so-blue);
+  stroke: rgba(191, 224, 255, 0.7);
+  stroke-width: 1.5;
+}
+.so-ap-fcore,
+.so-ap-ycore {
+  fill: #fff;
+}
+.so-ap-ynode {
+  fill: rgba(238, 243, 251, 0.1);
+  stroke: var(--so-ink);
+  stroke-width: 1.5;
+}
+.so-ap-node-t {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  fill: #b9c3d4;
+}
+.so-ap-node-t-hi {
+  fill: var(--so-ink);
+}
+
+.so-ap-link[data-play="true"] .so-ap-chain {
+  animation: so-ap-chain 10s linear infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-comet {
+  animation: so-ap-comet 10s linear infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-strike {
+  animation: so-ap-strike 10s linear infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-mid {
+  animation: so-ap-mid 10s var(--ap-ease) infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-mid-2 {
+  animation-delay: 0.15s;
+}
+.so-ap-link[data-play="true"] .so-ap-founder {
+  animation: so-ap-founder 10s var(--ap-ease) infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-direct,
+.so-ap-link[data-play="true"] .so-ap-direct-glow {
+  animation: so-ap-direct 10s var(--ap-ease) infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-pulses {
+  animation: so-ap-pulses 10s linear infinite both;
+}
+.so-ap-link[data-play="true"] .so-ap-pulse-a {
+  animation: so-ap-run 2.2s cubic-bezier(0.6, 0, 0.4, 1) infinite alternate both;
+}
+.so-ap-link[data-play="true"][data-hero="true"] .so-ap-pulse-a,
+.so-ap-link[data-play="true"][data-hero="true"] .so-ap-pulse-b {
+  opacity: 1;
+  animation: so-ap-run 1s cubic-bezier(0.6, 0, 0.4, 1) infinite alternate both;
+}
+.so-ap-link[data-play="true"][data-hero="true"] .so-ap-pulse-b {
+  animation-direction: alternate-reverse;
+}
+.so-ap-link[data-play="true"] .so-ap-orbit {
+  animation: so-ap-spin 14s linear infinite;
+}
+.so-ap-link[data-play="true"] .so-ap-link-cap {
+  animation: so-ap-cap 10s var(--ap-ease) infinite both;
+}
+
+/* Mouse hover: cut straight to the direct line. */
+.so-ap-link[data-snap="true"] .so-ap-chain,
+.so-ap-link[data-snap="true"] .so-ap-comet {
+  animation: none;
+  opacity: 0;
+}
+.so-ap-link[data-snap="true"] .so-ap-founder {
+  animation: so-ap-in-scale 0.5s var(--ap-ease) both;
+}
+.so-ap-link[data-snap="true"] .so-ap-direct,
+.so-ap-link[data-snap="true"] .so-ap-direct-glow {
+  animation: so-ap-in-draw 0.6s var(--ap-ease) both;
+}
+.so-ap-link[data-snap="true"] .so-ap-pulses {
+  animation: so-ap-in-fade 0.4s ease 0.35s both;
+}
+.so-ap-link[data-snap="true"] .so-ap-link-cap {
+  animation: so-ap-in-fade 0.4s ease 0.25s both;
+}
+@keyframes so-ap-in-scale {
+  from { opacity: 0; transform: scale(0.6); }
+}
+@keyframes so-ap-in-draw {
+  from { stroke-dashoffset: 1; }
+}
+@keyframes so-ap-in-fade {
+  from { opacity: 0; }
+}
+
+@keyframes so-ap-chain {
+  0% { opacity: 0; }
+  4% { opacity: 1; }
+  34% { opacity: 1; }
+  42%, 100% { opacity: 0; }
+}
+@keyframes so-ap-comet {
+  0%, 5% { opacity: 0; stroke-dashoffset: 0.06; }
+  6% { opacity: 1; }
+  28% { opacity: 0.5; stroke-dashoffset: -1; }
+  29%, 100% { opacity: 0; stroke-dashoffset: -1; }
+}
+@keyframes so-ap-strike {
+  0%, 27% { stroke-dashoffset: 1; }
+  32%, 100% { stroke-dashoffset: 0; }
+}
+@keyframes so-ap-mid {
+  0%, 32% { opacity: 1; transform: none; }
+  40%, 100% { opacity: 0; transform: scale(0.82); }
+}
+@keyframes so-ap-founder {
+  0%, 35% { opacity: 0; transform: scale(0.4); }
+  45% { opacity: 1; transform: none; }
+  92% { opacity: 1; transform: none; }
+  98%, 100% { opacity: 0; transform: scale(0.92); }
+}
+@keyframes so-ap-direct {
+  0%, 40% { opacity: 1; stroke-dashoffset: 1; }
+  50% { stroke-dashoffset: 0; }
+  92% { opacity: 1; stroke-dashoffset: 0; }
+  97%, 100% { opacity: 0; stroke-dashoffset: 0; }
+}
+@keyframes so-ap-pulses {
+  0%, 50% { opacity: 0; }
+  54%, 90% { opacity: 1; }
+  94%, 100% { opacity: 0; }
+}
+@keyframes so-ap-run {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--span)); }
+}
+@keyframes so-ap-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes so-ap-cap {
+  0%, 40% { opacity: 0; transform: translateY(6px); }
+  47%, 92% { opacity: 1; transform: none; }
+  97%, 100% { opacity: 0; transform: none; }
+}
+
+/* ======================================================================
+   04 · Blueprint + checklist
+   One 9s loop; each element runs the same keyframes on its own --d.
+   ====================================================================== */
+
+.so-ap-build {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  padding: 12px 18px 12px 8px;
+}
+.so-ap-build::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgba(30, 144, 240, 0.16) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(90deg, rgba(30, 144, 240, 0.16) 1px, transparent 1px) 0 0 / 64px 64px,
+    linear-gradient(rgba(30, 144, 240, 0.07) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(90deg, rgba(30, 144, 240, 0.07) 1px, transparent 1px) 0 0 / 16px 16px;
+  -webkit-mask-image: radial-gradient(90% 90% at 35% 50%, #000 30%, transparent 85%);
+  mask-image: radial-gradient(90% 90% at 35% 50%, #000 30%, transparent 85%);
+}
+@container (min-width: 520px) {
+  .so-ap-build {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    padding: 16px 40px 16px 24px;
+    gap: 24px;
+  }
+}
+.so-ap-bp {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+.so-ap-bp-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transition: filter 0.4s ease;
+}
+.so-ap-build[data-hero="true"] .so-ap-bp-svg {
+  filter: drop-shadow(0 0 4px rgba(30, 144, 240, 0.85));
+}
+.so-ap-bp-l {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.so-ap-bp-main {
+  stroke: #d6e8ff;
+  stroke-width: 1.7;
+}
+.so-ap-bp-mid {
+  stroke: #8cc4ff;
+  stroke-width: 1.3;
+}
+.so-ap-bp-fine {
+  stroke: rgba(140, 196, 255, 0.7);
+  stroke-width: 1;
+}
+.so-ap-bp-dim {
+  stroke: rgba(140, 196, 255, 0.45);
+  stroke-width: 1;
+}
+.so-ap-bp-j {
+  fill: #0a0d14;
+  stroke: #8cc4ff;
+  stroke-width: 1.2;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.so-ap-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 45%;
+  background: linear-gradient(180deg, transparent, rgba(30, 144, 240, 0.14) 75%, rgba(140, 196, 255, 0.6) 99%, transparent);
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 25%, #000 75%, transparent);
+}
+.so-ap-build[data-hero="true"] .so-ap-scan {
+  animation: so-ap-scan 1.9s linear infinite;
+}
+@keyframes so-ap-scan {
+  0% { opacity: 1; transform: translateY(-100%); }
+  100% { opacity: 1; transform: translateY(230%); }
+}
+
+.so-ap-checks {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.so-ap-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--so-ink);
+}
+.so-ap-tick {
+  position: relative;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 99px;
+  box-shadow: inset 0 0 0 1.5px rgba(238, 243, 251, 0.24);
+}
+.so-ap-tick::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--so-blue);
+  box-shadow: 0 0 14px rgba(30, 144, 240, 0.55);
+}
+.so-ap-tick svg {
+  position: absolute;
+  inset: 2px;
+  width: 16px;
+  height: 16px;
+}
+.so-ap-tick path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+.so-ap-pass {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 7px 12px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  color: #bfe0ff;
+  background: rgba(30, 144, 240, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(30, 144, 240, 0.5);
+}
+.so-ap-pass-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 99px;
+  background: var(--so-blue);
+  box-shadow: 0 0 0 3px rgba(30, 144, 240, 0.25);
+}
+@container (max-width: 420px) {
+  .so-ap-checks {
+    gap: 10px;
+  }
+  .so-ap-check {
+    gap: 8px;
+    font-size: 12px;
+  }
+  .so-ap-tick {
+    flex-basis: 18px;
+    width: 18px;
+    height: 18px;
+  }
+  .so-ap-tick svg {
+    inset: 1px;
+  }
+  .so-ap-pass {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
+
+.so-ap-build[data-play="true"] .so-ap-bp-l {
+  animation: so-ap-draw 9s linear infinite both;
+  animation-delay: var(--d);
+}
+.so-ap-build[data-play="true"] .so-ap-bp-j {
+  animation: so-ap-pop 9s linear infinite both;
+  animation-delay: var(--d);
+}
+.so-ap-build[data-play="true"] .so-ap-tick::before {
+  animation: so-ap-fill 9s linear infinite both;
+  animation-delay: var(--d);
+}
+.so-ap-build[data-play="true"] .so-ap-tick path {
+  animation: so-ap-tickdraw 9s linear infinite both;
+  animation-delay: var(--d);
+}
+.so-ap-build[data-play="true"] .so-ap-check-t {
+  animation: so-ap-dimlabel 9s linear infinite both;
+  animation-delay: var(--d);
+}
+.so-ap-build[data-play="true"] .so-ap-pass {
+  animation: so-ap-pass 9s linear infinite both;
+  animation-delay: var(--d);
+}
+
+@keyframes so-ap-draw {
+  0% { opacity: 1; stroke-dashoffset: 1; animation-timing-function: cubic-bezier(0.45, 0, 0.2, 1); }
+  11% { stroke-dashoffset: 0; }
+  76% { opacity: 1; stroke-dashoffset: 0; }
+  84%, 100% { opacity: 0; stroke-dashoffset: 0; }
+}
+@keyframes so-ap-pop {
+  0% { opacity: 0; transform: scale(0); }
+  4% { opacity: 1; transform: scale(1.5); }
+  7% { transform: none; }
+  70% { opacity: 1; transform: none; }
+  76%, 100% { opacity: 0; transform: none; }
+}
+@keyframes so-ap-fill {
+  0% { opacity: 0; transform: scale(0.3); }
+  3% { opacity: 1; transform: scale(1.18); }
+  5% { transform: none; }
+  78% { opacity: 1; transform: none; }
+  84%, 100% { opacity: 0; transform: scale(0.6); }
+}
+@keyframes so-ap-tickdraw {
+  0%, 2% { stroke-dashoffset: 1; }
+  6%, 78% { stroke-dashoffset: 0; }
+  82%, 100% { stroke-dashoffset: 1; }
+}
+@keyframes so-ap-dimlabel {
+  0% { opacity: 0.45; }
+  3%, 78% { opacity: 1; }
+  84%, 100% { opacity: 0.45; }
+}
+@keyframes so-ap-pass {
+  0% { opacity: 0; transform: translateY(6px) scale(0.96); }
+  4% { opacity: 1; transform: none; }
+  38% { opacity: 1; transform: none; }
+  43%, 100% { opacity: 0; transform: none; }
+}
+
+/* ---------- reduced motion: finished frames, no movement ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .so-ap-cell,
+  .so-ap-card,
+  .so-ap-mask > span,
+  .so-ap-eyebrow,
+  .so-ap-slab,
+  .so-ap-lab,
+  .so-ap-lab-line,
+  .so-ap-lab-text {
+    transition: none;
+  }
+  .so-ap-cell[data-seen="false"] {
+    opacity: 1;
+    transform: none;
+  }
+}
+.so-ap[data-reduced="true"] .so-ap-card {
+  transform: none;
+}

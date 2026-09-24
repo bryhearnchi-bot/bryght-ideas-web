@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
-import { Nav } from "@/components/nav";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -45,10 +44,6 @@ export default function RootLayout({
       <body
         className={`${bricolage.variable} ${dmSans.variable} font-sans antialiased`}
       >
-        {/* The nav rides on the blue hero block, so the band behind it is blue too. */}
-        <div className="bg-blue-block">
-          <Nav />
-        </div>
         {children}
       </body>
     </html>
