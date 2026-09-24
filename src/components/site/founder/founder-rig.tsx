@@ -164,6 +164,9 @@ export default function FounderRig({ mobile, reduced }: { mobile: boolean; reduc
       lastEl.current = el;
     }
     if (!el || reduced) {
+      // Reduced motion can switch on mid-page: hand the card back to the HTML image.
+      setCardAttr(el, "data-gl", false);
+      setCardAttr(el, "data-revealed", false);
       founder.presence = 0;
       founder.hold = 0;
       founder.reveal = 0;

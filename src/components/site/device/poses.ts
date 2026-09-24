@@ -106,6 +106,8 @@ const GAP = 16; // 12px asked for + a few px for damping overshoot
 const STACK_INTRO_PX = 383;
 const STACK_APPS_PX = 297;
 const COPY_CLEAR = 40;
+/** Stacked, landscape: smallest front phone, as a fraction of the view height. */
+const STACK_MIN = 0.3;
 
 /*
  * How far the whole cluster reaches from its centre, in units of the front
@@ -125,10 +127,16 @@ const REACH_RIGHT = 0.745;
 /** Side-by-side ring radius across, in front-phone heights. */
 const RING_X = 0.62;
 
-/** Largest height whose [c - up*h, c + down*h] fits [lo, hi], and the centre that centres it there. */
-function fitBand(lo: number, hi: number, up: number, down: number, cap: number) {
-  const h = Math.min(cap, (hi - lo) / (up + down));
-  return { h, c: (lo + up * h + hi - down * h) / 2 };
+/**
+ * Largest height whose [c - up*h, c + down*h] fits [lo, hi], and the centre that centres it there.
+ * Never below `min`: when even that does not fit (a phone in landscape, where the nav and the
+ * text card overlap), the band keeps `min`, pinned to lo, and runs past hi.
+ */
+function fitBand(lo: number, hi: number, up: number, down: number, cap: number, min = 0) {
+  const fit = (hi - lo) / (up + down);
+  const h = Math.min(cap, Math.max(min, fit));
+  const c = h > fit ? lo + up * h : (lo + up * h + hi - down * h) / 2;
+  return { h, c };
 }
 
 export function computeLayout(W: number, H: number, pxW: number, pxH: number): Layout {
@@ -173,10 +181,13 @@ export function computeLayout(W: number, H: number, pxW: number, pxH: number): L
   const bottomApps = H / 2 - (pxH - STACK_APPS_PX - GAP) * hPerPx;
   const bottomIntro = H / 2 - (pxH - STACK_INTRO_PX - GAP) * hPerPx;
   const cap = Math.min(0.42 * H, 0.92 * W);
+  // A phone in landscape has no room between the nav and the card: keep the
+  // phones a usable size (running behind the card) rather than shrinking them to nothing.
+  const min = pxW > pxH ? STACK_MIN * H : 0;
   // fitBand's axis runs top-down: negate y.
-  const apps = fitBand(-top, -bottomApps, REACH_UP, REACH_DOWN, cap);
-  const intro = fitBand(-top, -bottomIntro, REACH_UP, REACH_DOWN, cap);
-  const fan = fitBand(-top, -bottomIntro, FAN_UP, FAN_DOWN, FAN_RATIO * apps.h);
+  const apps = fitBand(-top, -bottomApps, REACH_UP, REACH_DOWN, cap, min);
+  const intro = fitBand(-top, -bottomIntro, REACH_UP, REACH_DOWN, cap, min);
+  const fan = fitBand(-top, -bottomIntro, FAN_UP, FAN_DOWN, FAN_RATIO * apps.h, FAN_RATIO * min);
   const hFront = apps.h;
   return {
     mobile: true,

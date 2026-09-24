@@ -26,7 +26,7 @@ export function StackDemo({ play, hero, reduced }: DemoProps) {
     <div
       ref={ref}
       className="so-ap-stack"
-      data-play={play ? "true" : undefined}
+      data-play={play && !reduced ? "true" : undefined}
       data-hero={hero || reduced ? "true" : undefined}
       data-landed={landed === false && !reduced ? "false" : undefined}
     >
