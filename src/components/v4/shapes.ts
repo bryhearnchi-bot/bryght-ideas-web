@@ -8,9 +8,13 @@
  * (camera, city lights, synapses, the orbit ring, and the phones' island,
  * corners and buttons).
  *
- * Shapes: 0 bulb · 1 phone · 2 globe · 3 network · 4 ring · 5 phone trio · 6 wave.
+ * Shapes: 0 bulb · 1 phone · 2 globe · 3 network · 4 ring · 5 phone trio ·
+ * 6 wave · 7 founder portrait.
  * Shape 5 is in PHONE-LOCAL units (phone-dims.ts): particle i belongs to
  * phone i % 3 and is placed in the world by that phone's anchor matrix.
+ * Shape 7 is in CARD-LOCAL units (card 1 wide, CARD_H tall, centred) and is
+ * placed by the founder card's anchor matrix. Its particles carry a role and
+ * a halftone tone in aTone (see TONE).
  */
 import {
   CORNER,
@@ -22,9 +26,29 @@ import {
   SCREEN_W,
 } from "./phone-dims";
 
-export const SHAPE_COUNT = 7;
+export const SHAPE_COUNT = 8;
 /** Index of the phone-trio shape (placed by the anchors, not the group). */
 export const PHONE_TRIO = 5;
+/** Index of the founder portrait (placed by the card anchor, not the group). */
+export const PORTRAIT = 7;
+
+/** Founder card in card-local units: 1 wide, 4:5, centred on the origin. */
+export const CARD_W = 1;
+export const CARD_H = 1.25;
+/** Corner radius of the card (28px on a 440px card). */
+export const CARD_R = 0.064;
+
+/**
+ * aTone encodes a particle's role in the portrait (shape 7):
+ *   0..1  halftone grid dot, value = brightness of the photo under it
+ *   BORDER  the card's rounded-rect outline (the aura that stays)
+ *   CORNER  a yellow spark on one of the card's corners
+ *   HIDDEN  not drawn while the portrait holds (spare particles)
+ */
+export const TONE = { BORDER: 2, CORNER: 3, HIDDEN: -1, MID: 0.5 } as const;
+
+/** Halftone columns across the founder card (rows follow the 4:5 card). */
+export const portraitCols = (mobile: boolean) => (mobile ? 60 : 110);
 
 /**
  * Role of a particle inside the phone trio, used by the shader:
@@ -45,6 +69,10 @@ export type SignalShapes = {
   phone: Float32Array;
   /** KIND of the particle in shape 5. */
   kind: Float32Array;
+  /** Role / halftone tone of the particle in shape 7 (see TONE). */
+  tone: Float32Array;
+  /** Halftone grid of the portrait: cell (c, r) -> particle index (or -1). */
+  grid: { cols: number; rows: number; index: Int32Array };
 };
 
 type Rng = () => number;
@@ -595,9 +623,80 @@ function wave(n: number, rng: Rng) {
   return out;
 }
 
+/* ------------------------------------------------------------ portrait */
+
+/** Is the card-local point inside the card's rounded rect (inset by `pad`)? */
+function inCard(x: number, y: number, pad: number) {
+  const hw = CARD_W / 2 - pad;
+  const hh = CARD_H / 2 - pad;
+  const r = Math.max(0, CARD_R - pad);
+  const qx = Math.abs(x) - (hw - r);
+  const qy = Math.abs(y) - (hh - r);
+  if (qx <= 0 || qy <= 0) return Math.abs(x) <= hw && Math.abs(y) <= hh;
+  return qx * qx + qy * qy <= r * r;
+}
+
+/**
+ * The founder card as a halftone screen: a regular dot grid over the card
+ * (the page samples the photo into aTone later), the card's rounded outline,
+ * and yellow sparks on its four corners. Grid cells are listed row-major
+ * from the top-left so a tone image maps straight onto them.
+ */
+function portrait(n: number, sparks: number, rng: Rng, mobile: boolean) {
+  const out = new Float32Array(n * 3);
+  const tone = new Float32Array(n);
+  const cols = portraitCols(mobile);
+  const rows = Math.round((cols * CARD_H) / CARD_W);
+  const index = new Int32Array(cols * rows).fill(-1);
+  const jit = (s: number) => gauss(rng) * s;
+  const RIM = 0.012;
+
+  let i = sparks;
+  // Halftone grid, clipped to the rounded card.
+  for (let r = 0; r < rows && i < n; r++) {
+    for (let c = 0; c < cols && i < n; c++) {
+      const x = -CARD_W / 2 + ((c + 0.5) / cols) * CARD_W;
+      const y = CARD_H / 2 - ((r + 0.5) / rows) * CARD_H;
+      if (!inCard(x, y, 0.004)) continue;
+      set(out, i, x, y, 0);
+      tone[i] = TONE.MID;
+      index[r * cols + c] = i;
+      i++;
+    }
+  }
+  // Everything left traces the outline, a hair outside the card.
+  for (; i < n; i++) {
+    const [px, py] = roundedRectPoint(CARD_W + RIM * 2, CARD_H + RIM * 2, CARD_R + RIM, rng());
+    set(out, i, px + jit(0.0015), py + jit(0.0015), jit(0.002));
+    tone[i] = TONE.BORDER;
+  }
+  // Sparks: a short bright arc on each corner; the rest sit out.
+  for (let k = 0; k < sparks; k++) {
+    if (k % 3 !== 0) {
+      const [px, py] = roundedRectPoint(CARD_W + RIM * 2, CARD_H + RIM * 2, CARD_R + RIM, rng());
+      set(out, k, px, py, 0);
+      tone[k] = TONE.HIDDEN;
+      continue;
+    }
+    const sx = rng() < 0.5 ? -1 : 1;
+    const sy = rng() < 0.5 ? -1 : 1;
+    const a = Math.PI / 4 + jit(0.22);
+    const rr = CARD_R + RIM;
+    set(
+      out,
+      k,
+      sx * (CARD_W / 2 + RIM - rr + Math.cos(a) * rr),
+      sy * (CARD_H / 2 + RIM - rr + Math.sin(a) * rr),
+      0,
+    );
+    tone[k] = TONE.CORNER;
+  }
+  return { out, tone, grid: { cols, rows, index } };
+}
+
 /* ----------------------------------------------------------------- all */
 
-export function buildShapes(n: number): SignalShapes {
+export function buildShapes(n: number, mobile = n < 10000): SignalShapes {
   const rng = mulberry32(20260922);
   const sparkCount = Math.round(n * 0.035);
 
@@ -618,6 +717,9 @@ export function buildShapes(n: number): SignalShapes {
   }
 
   const trio = phoneTrio(n, sparkCount, rng);
+  const wav = wave(n, rng);
+  // Own stream, so the portrait never reshuffles the shapes before it.
+  const card = portrait(n, sparkCount, mulberry32(7070), mobile);
   const shapes = [
     bulb(n, sparkCount, rng),
     phone(n, sparkCount, rng),
@@ -625,7 +727,8 @@ export function buildShapes(n: number): SignalShapes {
     brain(n, sparkCount, rng),
     torus(n, sparkCount, rng),
     trio.out,
-    wave(n, rng),
+    wav,
+    card.out,
   ];
 
   // Wave sparks: scatter the yellow indices across the grid instead of
@@ -640,5 +743,15 @@ export function buildShapes(n: number): SignalShapes {
     }
   }
 
-  return { count: n, shapes, dir, seed, spark, phone: phoneOf, kind: trio.kind };
+  return {
+    count: n,
+    shapes,
+    dir,
+    seed,
+    spark,
+    phone: phoneOf,
+    kind: trio.kind,
+    tone: card.tone,
+    grid: card.grid,
+  };
 }

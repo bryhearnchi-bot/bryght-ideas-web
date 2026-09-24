@@ -4,6 +4,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import DeviceRig from "./device/device-rig";
+import FounderRig from "./founder/founder-rig";
+import { founder } from "./founder/founder-store";
+import { sampleTones } from "./founder/photo";
+import { fx, MAX_RIPPLES } from "./fx-store";
 import { buildShapes } from "./shapes";
 import { fragmentShader, vertexShader } from "./shaders";
 import { showcase, PHONE_COUNT } from "./showcase-store";
@@ -23,8 +27,9 @@ function cameraDistance(width: number, height: number, mobile: boolean) {
 }
 
 /**
- * Runs first (priority -2): the device rig (-1) places the phones from the
- * live camera, and the particles (0) read the anchors the rig just wrote.
+ * Runs first (priority -2): the device and founder rigs (-1) place the
+ * phones and the founder card from the live camera, and the particles (0)
+ * read the anchors the rigs just wrote.
  */
 function CameraDolly({ reduced, mobile }: FieldProps) {
   useFrame((state, delta) => {
@@ -48,8 +53,8 @@ function ParticleField({ reduced, mobile }: FieldProps) {
   const invalidate = useThree((s) => s.invalidate);
   const dpr = useThree((s) => s.viewport.dpr);
 
+  const data = useMemo(() => buildShapes(mobile ? 6000 : 20000, mobile), [mobile]);
   const geometry = useMemo(() => {
-    const data = buildShapes(mobile ? 6000 : 20000);
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(data.shapes[0], 3));
     for (let s = 1; s < data.shapes.length; s++) {
@@ -60,8 +65,11 @@ function ParticleField({ reduced, mobile }: FieldProps) {
     g.setAttribute("aSpark", new THREE.BufferAttribute(data.spark, 1));
     g.setAttribute("aPhone", new THREE.BufferAttribute(data.phone, 1));
     g.setAttribute("aKind", new THREE.BufferAttribute(data.kind, 1));
+    // Portrait roles + halftone tones: rewritten once the photo is sampled.
+    g.setAttribute("aTone", new THREE.BufferAttribute(data.tone.slice(), 1));
     return g;
-  }, [mobile]);
+  }, [data]);
+  const toneState = useRef<"idle" | "loading" | "done">("idle");
 
   const uniforms = useMemo(
     () => ({
@@ -81,11 +89,40 @@ function ParticleField({ reduced, mobile }: FieldProps) {
       // is a little larger and brighter.
       uPhoneSize: { value: mobile ? 0.82 : 0.62 },
       uPhoneAlpha: { value: mobile ? 1.45 : 1 },
+      // Founder portrait (shape 7), placed by the founder rig's card anchor.
+      uCardMat: { value: new THREE.Matrix4() },
+      uCardReveal: { value: 0 },
+      uCardHold: { value: 0 },
+      uCardHover: { value: new THREE.Vector3() },
+      uCardPx: { value: 4 },
+      uRelief: { value: 0.09 },
+      uCardScale: { value: 1 },
+      // HTML ripples through the wave: (ndc x, ndc y, age s, strength).
+      uRipple: { value: Array.from({ length: MAX_RIPPLES }, () => new THREE.Vector4(0, 0, -1, 0)) },
+      uAspect: { value: 1 },
     }),
     [mobile],
   );
 
   useEffect(() => () => geometry.dispose(), [geometry]);
+
+  // Sample the photo into the halftone once the founder card gets close.
+  const toneTries = useRef(0);
+  const applyTones = (tones: Float32Array | null) => {
+    if (!tones) {
+      // A failed fetch keeps the flat mid-tone grid; try again shortly.
+      toneState.current = "done";
+      if (++toneTries.current < 3) window.setTimeout(() => (toneState.current = "idle"), 4000);
+      return;
+    }
+    toneState.current = "done";
+    const attr = geometry.getAttribute("aTone") as THREE.BufferAttribute;
+    const arr = attr.array as Float32Array;
+    const idx = data.grid.index;
+    for (let k = 0; k < idx.length; k++) if (idx[k] >= 0) arr[idx[k]] = tones[k];
+    attr.needsUpdate = true;
+    invalidate();
+  };
 
   // In reduced-motion mode the loop is on demand: redraw once per change.
   useEffect(() => {
@@ -183,6 +220,29 @@ function ParticleField({ reduced, mobile }: FieldProps) {
       mat.uniforms.uPointer.value.copy(camera.position).addScaledVector(tmpVec, dist);
     }
 
+    // Founder card: the rig (priority -1) has written this frame's anchor.
+    founder.morph = m;
+    if (toneState.current === "idle" && founder.presence > 0) {
+      toneState.current = "loading";
+      sampleTones(data.grid.cols, data.grid.rows).then(applyTones, () => applyTones(null));
+    }
+    mat.uniforms.uCardMat.value.copy(founder.anchor.matrixWorld);
+    mat.uniforms.uCardReveal.value = founder.reveal;
+    mat.uniforms.uCardHold.value = founder.hold;
+    mat.uniforms.uCardHover.value.copy(founder.hover);
+    mat.uniforms.uCardPx.value = founder.dotPx;
+    mat.uniforms.uCardScale.value = founder.anchor.scale.x;
+
+    // Ripples: ages on the CPU so the shader never sees a large clock value.
+    const now = performance.now() / 1000;
+    const ripples = mat.uniforms.uRipple.value as THREE.Vector4[];
+    for (let i = 0; i < MAX_RIPPLES; i++) {
+      const r = fx.ripples[i];
+      const age = r.start < 0 || reduced ? -1 : now - r.start;
+      ripples[i].set(r.x, r.y, age, r.strength);
+    }
+    mat.uniforms.uAspect.value = size.width / Math.max(1, size.height);
+
     mat.uniforms.uTime.value = t;
     mat.uniforms.uMorph.value = m;
     mat.uniforms.uDim.value = dimRef.current;
@@ -241,6 +301,7 @@ export default function OrbitCanvas({ reduced, mobile }: FieldProps) {
       >
         <CameraDolly reduced={reduced} mobile={mobile} />
         <DeviceRig mobile={mobile} reduced={reduced} />
+        <FounderRig mobile={mobile} reduced={reduced} />
         <ParticleField reduced={reduced} mobile={mobile} />
       </Canvas>
     </div>

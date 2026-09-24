@@ -9,7 +9,8 @@ type Listener = () => void;
 export const signalStore = {
   /**
    * 0 bulb · 1 phone · 2 globe · 3 network · 4 ring (services) ·
-   * 5 phone trio (the pinned Work showcase) · 6 wave (everything below it)
+   * 5 phone trio (the pinned Work showcase) · 6 wave (Approach, Contact) ·
+   * 7 founder halftone portrait (sits on the founder card)
    */
   morph: 0,
   /** Brightness of the field, lowered behind dense content. */
