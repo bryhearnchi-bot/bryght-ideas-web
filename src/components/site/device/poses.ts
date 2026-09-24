@@ -96,7 +96,7 @@ export function isStacked(pxW: number, pxH: number) {
 export const INTRO_END = 1.6;
 
 /*
- * Page chrome the phones must clear, in CSS px (measured on /v4). The fixed
+ * Page chrome the phones must clear, in CSS px (measured on the home page). The fixed
  * nav is h-16 (64px) below md and h-20 (80px) from md, plus a 1px border.
  * Stacked: the text card is pinned 52px above the bottom; with that offset
  * the intro card reaches 383px up and the app panel 297px. Side by side: the

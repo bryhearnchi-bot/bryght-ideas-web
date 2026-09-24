@@ -1,5 +1,5 @@
 /* ======================================================================
-   How we work (v4) — a bento of four live cards. Prefix so-ap-.
+   How we work — a bento of four live cards. Prefix so-ap-.
    Rule of thumb for every demo: the base styles are the finished frame
    (reduced motion, no JS, not yet in view); loops only run under
    [data-play="true"], and the hero moment under [data-hero="true"] /

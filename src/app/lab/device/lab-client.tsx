@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Private test bench for the v4 device rig: a full-screen canvas configured
+ * Private test bench for the device rig: a full-screen canvas configured
  * like the real page's, containing only the rig, plus a scrubber for
  * showcase.t. Query string: ?t=2.45 (stage), ?m=1 (mobile detail), ?r=1
  * (reduced motion), ?ui=0 (hide the controls for clean screenshots).
@@ -9,9 +9,9 @@
 import { useEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
-import DeviceRig from "@/components/v4/device/device-rig";
-import { isStacked } from "@/components/v4/device/poses";
-import { showcase } from "@/components/v4/showcase-store";
+import DeviceRig from "@/components/site/device/device-rig";
+import { isStacked } from "@/components/site/device/poses";
+import { showcase } from "@/components/site/showcase-store";
 
 const TAN_HALF_FOV = Math.tan(THREE.MathUtils.degToRad(22.5));
 

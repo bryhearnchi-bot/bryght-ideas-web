@@ -1,4 +1,4 @@
-/* Founder section (v4). Everything prefixed so-fd- and scoped under .so-fd.
+/* Founder section. Everything prefixed so-fd- and scoped under .so-fd.
    The card is a layout box the WebGL rig fills with the halftone portrait
    and the photo; the HTML image inside it is the fallback (no WebGL,
    reduced motion) and what screen readers get. */

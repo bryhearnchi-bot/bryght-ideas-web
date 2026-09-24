@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import LabClient from "./lab-client";
 
 export const metadata: Metadata = {
-  title: "v4 lab",
+  title: "Device lab",
   robots: { index: false, follow: false },
 };
 

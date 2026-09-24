@@ -6,7 +6,7 @@ import { ArrowDown, ArrowUpRight } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { siteConfig } from "@/config/site";
 import { OrbitBackdrop, useWebGL } from "./orbit-backdrop";
-import { OrbitNav, VersionSwitcher } from "./orbit-nav";
+import { OrbitNav } from "./orbit-nav";
 import { Showcase } from "./showcase";
 import { Approach } from "./approach";
 import { Founder } from "./founder";
@@ -506,7 +506,6 @@ export function SignalOrbitPage() {
       <div className="so-content">
         <Footer />
       </div>
-      <VersionSwitcher current="/v4" />
     </div>
   );
 }
